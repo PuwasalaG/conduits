@@ -1,8 +1,43 @@
+#' Estimating conditional moments for time series
+#'
+#' This function estimates the means and variance of a time series conditional on a set of
+#' other times series via additive models.
+#'
+#'
+#' @param data a tibble containing all the time series which are uniquely identified by the
+#' corresponding Timestamp.
+#' @param x variable for which the conditional moments are estimated. Should be given as bared/unquoted name
+#' @param z_numeric numerical variable(s) use as predictors. Should be given as bared/unquoted names and use c()
+#' for multiple variables
+#' @param z_factors factor variable(s) use as predictors. Should be given as bared/unquoted names.
+#' NULL for empty factors or use c() for multiple variables
+#' @param knots_mean a vector containing the dimension of the basis in the smooth term fitting for
+#' each predictor in GAM for conditional means of $x$. The length of the vector should be same as that of
+#' "z_numeric". Default is $3$.
+#' @param knots_variance a vector containing the dimension of the basis in the smooth term fitting for
+#' each predictor in the GAM for conditional variance of $x$. The length of the vector should be same as that of
+#' "z_numeric". Default is $3$.
+#'
+#' @return An object of class "conditional_moments" with the following components
+#'  \item{data_conditional_moments}{The original tibble appended with the estimated
+#'  conditional means and variance of the time series given in $x$}
+#'  \item{x_mean_gam_fit}{fitted GAM model for conditional mean of $x$}
+#'  \item{x_var_gam_fit}{fitted GAM model for conditional variance of $x$}
+#'
+#' @details{ Suppose $x_t$ is a time series where its mean and the variance are functions of $z_t$.
+#' i.e. $E(x_t|z_t) = m_x(z_t)$ and $Var(x_t|z_t) = v_x(z_t)$. Then $m_x(z_t)$ and $v_x(z_t)$ can be
+#' estimated via generalised additive models (GAM). \code{conditional_moments} uses GAMs implemented
+#' in \code{mgcv} package to estimate the conditional means and the variance of a time series given
+#' a set of time series predictors.}
+#'
+#'
+#' @author Puwasala Gamakumara
+#'
+#' @seealso \code{\link[mgcv]{gam}}
+#'
+#' @export
 conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean = NULL,
                                 knots_variance = NULL) {
-
-  # data: A tibble consisting Timestamp, X, Y, and Z1,..,Zp
-  # p: number of predictors
 
   names_x <- names(tidyselect::eval_select(dplyr::enquo(x), data))
   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
@@ -42,7 +77,7 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
   ##-- conditional means --##
 
 
-  x_mean_gam <- mgcv::gam(formula = as.formula(formula_x_mean), data = data)
+  x_mean_gam <- mgcv::gam(formula = stats::as.formula(formula_x_mean), data = data)
 
 
   ##-- conditional variance --##
@@ -51,17 +86,17 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
 
   data <- data %>%
     dplyr::mutate(E_X = as.numeric(mgcv::predict.gam(x_mean_gam, newdata = data)),
-                  X_Ex2 = ({{x}} - E_X)^2)
+                  X_Ex2 = ({{x}} - .data$E_X)^2)
 
-  x_var_gam <- mgcv::gam(formula = as.formula(formula_x_var), data = data,
-                   family = Gamma(link = "log"))
+  x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var), data = data,
+                   family = stats::Gamma(link = "log"))
 
   data <- data %>%
     dplyr::mutate(Var_X = as.numeric(mgcv::predict.gam(x_var_gam, newdata = data,
                                                        type = "response"))) %>%
-    select(-X_Ex2) %>%
+    dplyr::select(-.data$X_Ex2) %>%
     dplyr::rename_with(.fn = ~paste(c("E_", "Var_"), names_x, sep = ""),
-                       .cols = c(E_X, Var_X))
+                       .cols = c(.data$E_X, .data$Var_X))
 
   return(structure(list(data_conditional_moments = data,
                         x_mean_gam_fit = x_mean_gam,
