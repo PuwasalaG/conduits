@@ -2,6 +2,7 @@
 
 export("%>%")
 export(.data)
+export(conditional_ccf)
 export(conditional_moments)
 importFrom(magrittr,"%>%")
 importFrom(rlang,.data)

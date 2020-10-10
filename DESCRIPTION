@@ -23,6 +23,6 @@ Imports:
     lubridate,
     stats,
     magrittr,
-    rlang
-Depends: 
-    
+    rlang,
+    purrr,
+    tibble
