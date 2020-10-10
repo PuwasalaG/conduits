@@ -11,10 +11,10 @@
 #' for multiple variables
 #' @param z_factors factor variable(s) use as predictors. Should be given as bared/unquoted names.
 #' NULL for empty factors or use c() for multiple variables
-#' @param knots_mean  vector containing the dimension of the basis in the smooth term fitting for
+#' @param knots_mean  vector specifying the dimension of the basis in the smooth term fitting for
 #' each predictor in the GAM for conditional mean of $x$. Each component of the vector should corresponds to each predictor specified in
 #' "z_numeric". Default fitting a $3$ dimentional thin plate regression spline.
-#' @param knots_variance a vector containing the dimension of the basis in the smooth term fitting for
+#' @param knots_variance a vector specifying the dimension of the basis in the smooth term fitting for
 #' each predictor in the GAM for conditional variance of $x$. Each component of the vector should corresponds to each predictor specified in
 #' "z_numeric". Default fitting a $3$ dimentional thin plate regression spline.
 #'
