@@ -33,7 +33,7 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
     k_max = max(k)
   }
 
-  data_predict_ccf <- predict(object = object, new_data = new_data)
+  data_predict_ccf <- predict.conditional_ccf(object = object, new_data = new_data)
 
   DF_ccf_max <- data_predict_ccf %>%
     dplyr::select(.data$Timestamp, tidyselect::all_of(paste("k = ", k, sep = "")))
@@ -41,12 +41,12 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
 
   DF_ccf_max <- DF_ccf_max %>%
     tibble::as_tibble() %>%
-    drop_na(`1`) %>%
+    tidyr::drop_na(.data$`1`) %>%
     tidyr::pivot_longer(cols = -.data$Timestamp, names_to = "dt", values_to = "ccf") %>%
-    dplyr::filter(dt %in% seq(k_min, k_max)) %>%
+    dplyr::filter(.data$dt %in% seq(k_min, k_max)) %>%
     dplyr::group_by(.data$Timestamp) %>%
-    dplyr::slice(which.max(abs(ccf))) %>%
-    dplyr::mutate(dt = as.numeric(dt)) %>%
+    dplyr::slice(which.max(abs(.data$ccf))) %>%
+    dplyr::mutate(dt = as.numeric(.data$dt)) %>%
     dplyr::ungroup()
 
   new_data <- new_data %>%

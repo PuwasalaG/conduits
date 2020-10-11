@@ -177,7 +177,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
 compute_XY_star <- function(data, k){
 
   Time <- data$Timestamp
-  Y_leads <- purrr::map(k, ~lead(data$Y_star, n = .x))
+  Y_leads <- purrr::map(k, ~dplyr::lead(data$Y_star, n = .x))
   names(Y_leads) <- paste("Y_", k, sep = "")
 
   Y_leads <- Y_leads %>%
