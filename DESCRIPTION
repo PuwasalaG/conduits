@@ -25,5 +25,5 @@ Imports:
     magrittr,
     rlang,
     purrr,
-    tibble
-Depends: 
+    tibble,
+    tidyr
