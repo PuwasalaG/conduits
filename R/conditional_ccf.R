@@ -115,12 +115,12 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
   ##-- computing cross-correlation at lags k --##
 
   if(!rlang::is_empty(names_z_factors)){
-    formula_XY <- paste("XY ~", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
+    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
                                       collapse = " + "),
                         "+", paste(names_z_factors, collapse = " + "),
                         sep = " ")
   }else{
-    formula_XY <- paste("XY ~", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
+    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
                                       collapse = " + "), sep = " ")
   }
 
@@ -139,7 +139,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
     ccf_gam_fit[[i]] <- stats::glm(formula = stats::as.formula(formula_XY),
                                    data = data_ccf_gam,
                                    family = stats::gaussian(link = corrl),
-                                   start = rep(0,(sum(df_correlation)+1)),
+                                   start = rep(0,(sum(df_correlation))),
                                    control = stats::glm.control(maxit = 400))
 
     DF_ccf_max[,i] <- stats::predict.glm(ccf_gam_fit[[i]], newdata = data_NEW, type = "response")
