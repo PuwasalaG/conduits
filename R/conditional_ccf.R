@@ -121,8 +121,9 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
                         sep = " ")
   }else{
     z_factors <- NULL
-    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
-                                      collapse = " + "), sep = " ")
+    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=",
+                                            df_correlation,  ")", sep = "",
+                                            collapse = " + "), sep = " ")
   }
 
 
