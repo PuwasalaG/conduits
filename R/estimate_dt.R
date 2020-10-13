@@ -45,7 +45,7 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
     tidyr::pivot_longer(cols = -.data$Timestamp, names_to = "dt", values_to = "ccf") %>%
     dplyr::filter(.data$dt %in% seq(k_min, k_max)) %>%
     dplyr::group_by(.data$Timestamp) %>%
-    dplyr::slice(which.max(abs(.data$ccf))) %>%
+    dplyr::slice(which.max(.data$ccf)) %>%
     dplyr::mutate(dt = as.numeric(.data$dt)) %>%
     dplyr::ungroup()
 
