@@ -88,8 +88,9 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
     dplyr::mutate(E_X = as.numeric(mgcv::predict.gam(x_mean_gam, newdata = data)),
                   X_Ex2 = ({{x}} - .data$E_X)^2)
 
-  x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var), data = data,
-                   family = stats::Gamma(link = "log"))
+  x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var),
+                         data = data,
+                         family = stats::Gamma(link = "log"))
 
   data_x_cond_moments <- data %>%
     dplyr::mutate(Var_X = as.numeric(mgcv::predict.gam(x_var_gam, newdata = data,

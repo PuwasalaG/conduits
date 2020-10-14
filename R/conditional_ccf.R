@@ -115,8 +115,8 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
   ##-- computing cross-correlation at lags k --##
 
   if(!rlang::is_empty(names_z_factors)){
-    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=", df_correlation,  ")", sep = "",
-                                      collapse = " + "),
+    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=",
+                                            df_correlation,  ")", sep = "", collapse = " + "),
                         "+", paste(names_z_factors, collapse = " + "),
                         sep = " ")
   }else{

@@ -20,8 +20,6 @@
 #' @export
 estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
 
-  # object: an object returned from conditional_ccf function
-  # new_data: data for which the time delay dt should be calculated
 
   k = object$other$k
 
