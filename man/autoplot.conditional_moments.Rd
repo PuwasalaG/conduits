@@ -2,7 +2,7 @@
 % Please edit documentation in R/autoplot.R
 \name{autoplot.conditional_moments}
 \alias{autoplot.conditional_moments}
-\title{Visualising the models fitted for conditional means}
+\title{Visualising the models fitted for conditional moments}
 \usage{
 \method{autoplot}{conditional_moments}(object, type = c("mean", "variance"), ...)
 }
