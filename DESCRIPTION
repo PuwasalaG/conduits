@@ -27,7 +27,6 @@ Imports:
     purrr,
     tibble,
     tidyr,
-    ggplot2,
     gridExtra
 Depends: 
     R (>= 2.10),
