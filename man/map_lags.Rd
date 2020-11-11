@@ -24,3 +24,6 @@ each timestamp
 This function will compute the lag of upstream variables according to the estimated time
 lag returned from \code{estimate_dt} function.
 }
+\author{
+Puwasala Gamakumara
+}

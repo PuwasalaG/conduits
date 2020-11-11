@@ -17,6 +17,9 @@
 #'  \item{conditional_ccf_object}{The object passed to the \code{estimate_dt} function}
 #'  \item{k_min}{minimum lag}
 #'  \item{k_max}{maximum lag}
+#'
+#' @author Puwasala Gamakumara
+#'
 #' @export
 estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
 

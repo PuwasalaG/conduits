@@ -15,9 +15,13 @@ This tibble should contain all the predictors passed to \code{conditional_ccf} a
 \item{...}{further arguments passed to or from other methods}
 }
 \value{
-returns a tibble with the predicted conditional cross-correlations at lags $k=1,2,...$
+returns a tibble with the predicted conditional cross-correlations
+at lags $k=1,2,...$
 }
 \description{
 Compute predictions for conditional cross-correlations at lags $k=1,2,...$ from the fitted models
 in \code{conditional_ccf} function.
+}
+\author{
+Puwasala Gamakumara
 }

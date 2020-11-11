@@ -35,6 +35,20 @@
 #'  cross-correlation at each lag. These data can be used for visualisation and diagnostics of each fitted model}
 #'  \item{formula_gam}{formula passed to the \code{\link[stats]{glm}} to fit additive models for
 #'  conditional cross-correlation}
+#'
+#' @details{ Suppose $x_t$ and $y_t$ are conditionally normalised with respect
+#' to $z_t$ using \code{conditional_moments}. Then we can estimate the conditional
+#' cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$
+#' via generalised additive models (GAM). \code{conditional_ccf} uses natural splines implemented
+#' in \code{splines} package to estimate the conditional cross-correlations between two
+#' time series given a set of time series predictors. Users need not to
+#' normalise $x_t$ and $y_t$. The function \code{conditional_ccf} itself will
+#' normalise $x_t$ and $y_t$ using \code{conditional_moments}}
+#'
+#' @author Puwasala Gamakumara
+#'
+#' @seealso \code{\link[stats]{glm}}, \code{\link[splines]{ns}}
+#'
 #' @export
 conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
                             knots_mean = NULL, knots_variance = NULL, df_correlation = NULL){

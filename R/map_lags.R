@@ -11,6 +11,9 @@
 #'
 #' @return a tibble with Timestamp, downstream variables and upstream lagged variables corresponds to
 #' each timestamp
+#'
+#' @author Puwasala Gamakumara
+#'
 #' @export
 #'
 map_lags <- function(data, up, down, lag){

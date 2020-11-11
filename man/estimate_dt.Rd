@@ -30,3 +30,6 @@ This function estimates the time that takes water to flow from an upstream locat
 location conditional on the observed water-quality variables from the upstream sensor. That time lag is
 defined as the lag that gives maximum cross-correlation conditional on upstream water-quality variables.
 }
+\author{
+Puwasala Gamakumara
+}

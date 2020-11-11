@@ -8,7 +8,11 @@
 #' This tibble should contain all the predictors passed to \code{conditional_ccf} along with the Timestamp.
 #' @param ... further arguments passed to or from other methods
 #'
-#' @return returns a tibble with the predicted conditional cross-correlations at lags $k=1,2,...$
+#' @return returns a tibble with the predicted conditional cross-correlations
+#' at lags $k=1,2,...$
+#'
+#' @author Puwasala Gamakumara
+#'
 #' @export
 predict.conditional_ccf <- function(object, new_data, ...){
 
