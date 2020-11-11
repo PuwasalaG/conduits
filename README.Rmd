@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-Package `conduits` provides an user interface for conditionally normalising a time series. This also facilitates functions to produce conditional cross-correlations between two normalised time series at different lags while providing some graphycal tools for visualisation. 
+Package `conduits` provides an user interface for conditionally normalising a time series. This also facilitates functions to produce conditional cross-correlations between two normalised time series at different lags while providing some graphical tools for visualisation. 
 
 `conduits` can also be used to estimate the time delay between two sensor locations in river systems.  
 
