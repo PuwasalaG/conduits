@@ -13,6 +13,10 @@
 #'
 #' @examples
 #'
+#' @seealso \code{\link[mgcv]{plot.gam}}, \code{\link[visreg]{visreg}}
+#'
+#' @author Puwasala Gamakumara
+#'
 #' @export
 autoplot.conditional_moments <- function(object,
                                          type = c("mean", "variance"),
@@ -216,11 +220,14 @@ autoplot.conditional_moments <- function(object,
 #' This can take one of "mean", "variance" or "cross-correlation"
 #' @param ... further arguments passed to or from other methods
 #'
-#' @return returns plots visualising fitted gam model for conditional
+#' @return returns plots visualising fitted gam models for conditional
 #' mean or variance vs each predictor.
 #'
 #' @examples
 #'
+#' @seealso \code{\link[stats]{plot.glm}}, \code{\link[visreg]{visreg}}
+#'
+#' @author Puwasala Gamakumara
 #'
 #' @export
 autoplot.conditional_ccf <- function(object,

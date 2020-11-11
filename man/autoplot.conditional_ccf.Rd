@@ -15,7 +15,7 @@ This can take one of "mean", "variance" or "cross-correlation"}
 \item{...}{further arguments passed to or from other methods}
 }
 \value{
-returns plots visualising fitted gam model for conditional
+returns plots visualising fitted gam models for conditional
 mean or variance vs each predictor.
 }
 \description{
@@ -25,5 +25,10 @@ conditional means, variances and cross-correlations from
 }
 \examples{
 
-
+}
+\seealso{
+\code{\link[stats]{plot.glm}}, \code{\link[visreg]{visreg}}
+}
+\author{
+Puwasala Gamakumara
 }

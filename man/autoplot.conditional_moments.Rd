@@ -25,3 +25,9 @@ conditional means and variances from \code{conditional_moments} function
 \examples{
 
 }
+\seealso{
+\code{\link[mgcv]{plot.gam}}, \code{\link[visreg]{visreg}}
+}
+\author{
+Puwasala Gamakumara
+}
