@@ -30,8 +30,10 @@ autoplot.conditional_moments <- function(object,
   var_fit <- object$var_gam$fit
 
   names_x <- names(tidyselect::eval_select(dplyr::enquo(x), object$data_conditional_moments))
-  names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), object$data_conditional_moments))
-  names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), object$data_conditional_moments))
+  names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric),
+                                                   object$data_conditional_moments))
+  names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors),
+                                                   object$data_conditional_moments))
 
   p <- length(names_z_numeric) + length(names_z_factors)
 
