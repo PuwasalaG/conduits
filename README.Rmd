@@ -34,22 +34,68 @@ devtools::install_github("PuwasalaG/conduits")
 
 This is a basic example which shows you how to use functions in `conduits`:
 
-Still working on the examples
+`conduits` contains a set of water-quality variables measured by in-situ sensors from the Pringle Creek located in Wise County, Texas. This is one of the aquatic NEON field sites hosted by the US Forest Service. 
 
-<!-- ```{r example} -->
-<!-- library(conduits) -->
-<!-- library(lubridate) -->
+This data contains water-quality variables such as, turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from $2019-07-01$ to $2019-12-31$ at every 5 mintues. 
 
-<!-- head(NEON_PRIN_5min) -->
+In this example we choose turbidity from upstream and downstream sites to calculate the cross-correlation while conditioning on level, temperature and conductance from the upstream location.  
 
-<!-- ## Normalising upstream turbidity conditional on upstream conductance, temperature and level -->
+Let us first prepare data as follows
 
-<!-- NEON_PRIN_5min <- NEON_PRIN_5min %>% -->
-<!--   mutate(Timestamp = ymd_hms(roundedTime)) %>%  -->
-<!--   filter(Timestamp >= ymd("2019-10-01")  -->
-<!--          & Timestamp < ymd("2020-01-01")) %>%  -->
-<!--   select(Timestamp, site, turbidity, surfacewaterElevMean, -->
-<!--          surfWaterTempMean, ) -->
-<!-- ``` -->
+```{r prepare_data}
+library(conduits)
+library(lubridate)
+library(tidyverse)
+
+data_z <- NEON_PRIN_5min_cleaned %>% 
+  filter(Timestamp >= ymd("2019-10-01") 
+         & Timestamp < ymd("2020-01-01"),
+         site == "upstream") %>%
+  select(Timestamp, level, conductance, temperature) %>% 
+  rename("level_up" = level,
+         "conductance_up" = conductance,
+         "temperature_up" = temperature)
+
+data_xy <- NEON_PRIN_5min_cleaned %>% 
+  filter(Timestamp >= ymd("2019-10-01") 
+         & Timestamp < ymd("2020-01-01")) %>% 
+  select(Timestamp, site, turbidity) %>% 
+  tidyr::spread(key = site, value = turbidity) %>% 
+  rename("turbidity_up" = upstream,
+         "turbidity_down" = downstream)
+
+data_normalisation <- data_xy %>% 
+  left_join(data_z, by = "Timestamp")
+
+head(data_normalisation)
+```
+
+
+
+### Conditional normalisation
+
+The following code shows how to use the `conditional_moments` function to normalise turbidity from upstream sites.
+
+```{r conditional_moments}
+
+cond_moments_x <- data_normalisation %>% 
+  conditional_moments(x = turbidity_up,
+                      z_numeric = c(level_up, temperature_up,
+                                    conductance_up),
+                      knots_mean = c(8,8,8),
+                      knots_variance = c(7,7,7))
+head(cond_moments_x$data_conditional_moments)
+```
+
+We can then visualise the fitted models for conditional means and variances by passing the `cond_moments_x` object to the `autoplot` method.
+
+```{r vis_mean_models}
+
+autoplot(cond_moments_x, type = "mean")
+
+```
+
+
+
 
 
