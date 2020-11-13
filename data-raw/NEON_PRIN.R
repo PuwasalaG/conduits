@@ -30,7 +30,7 @@ esw <- neonUtilities::loadByProduct(dpID="DP1.20016.001", site="PRIN",
                                     token = Sys.getenv("NEON_TOKEN"),
                                     check.size = F)
 
-tsw <- neonUtilities::loadByProduct(dpID="DP1.20053.001", site="CARI",
+tsw <- neonUtilities::loadByProduct(dpID="DP1.20053.001", site="PRIN",
                                     startdate="2017-04", enddate="2020-04",
                                     package="expanded",
                                     timeIndex = "5",
