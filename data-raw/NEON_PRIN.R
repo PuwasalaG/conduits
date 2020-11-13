@@ -115,7 +115,7 @@ waq_up <- waq_up %>%
 ##-- Flagging anomalous points in waq --##
 
 # - we identified these flags by inspecting all the variables
-# - also we flag the anomalies corresponds to the wiper in
+# - also we flag the anomalies corresponds to the wiper operation in turbidity
 
 waq_down <- waq_down %>%
   as_tibble() %>%
@@ -229,8 +229,9 @@ waq_up <- waq_up %>%
          turbidity_wiperAnomalyFlag = if_else(turbidity == turbidity_max, 1, 0),
          turbidity_wiperAnomalyFlag = if_else(is.na(turbidity_wiperAnomalyFlag), 0,
                                               turbidity_wiperAnomalyFlag),
-         turbidityAnomalyFlag = turbidityAnomalyFlag
-         + turbidity_wiperAnomalyFlag) %>%
+         turbidityAnomalyFlag = if_else(turbidityAnomalyFlag == 1
+                                        | turbidity_wiperAnomalyFlag == 1,
+                                        1, turbidityAnomalyFlag)) %>%
   select(-turbidity_max)
 
 
@@ -241,8 +242,11 @@ waq_down <- waq_down %>%
          turbidity_wiperAnomalyFlag = if_else(turbidity == turbidity_max, 1, 0),
          turbidity_wiperAnomalyFlag = if_else(is.na(turbidity_wiperAnomalyFlag),
                                               0, turbidity_wiperAnomalyFlag),
-         turbidityAnomalyFlag = turbidityAnomalyFlag + turbidity_wiperAnomalyFlag) %>%
+         turbidityAnomalyFlag = if_else(turbidityAnomalyFlag == 1
+                                        | turbidity_wiperAnomalyFlag == 1,
+                                        1, turbidityAnomalyFlag)) %>%
   select(-turbidity_max)
+
 
 
 NEON_PRIN_waq <- bind_rows(waq_up, waq_down) %>%
@@ -400,8 +404,6 @@ usethis::use_data(NEON_PRIN_15min_cleaned, overwrite = TRUE)
 
 ##-- Agggregating into 5 mints interval --##
 
-class(waq_up$endDateTime)
-
 waq_5min_up <- waq_up_cleaned %>%
   padr::thicken(interval = "5 min", by = "Timestamp", colname = "roundedTime", rounding = "down") %>%
   group_by(roundedTime) %>%
@@ -415,8 +417,6 @@ waq_5min_up <- waq_up_cleaned %>%
 
 
 # Aggregating downstream data
-
-class(waq_down$endDateTime)
 
 waq_5min_down <- waq_down_cleaned %>%
   padr::thicken(interval = "5 min", by = "Timestamp", colname = "roundedTime", rounding = "down") %>%
