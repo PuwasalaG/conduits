@@ -3,6 +3,7 @@
 S3method(autoplot,conditional_ccf)
 S3method(autoplot,conditional_moments)
 S3method(predict,conditional_ccf)
+S3method(summary,conditional_moments)
 export("%>%")
 export(.data)
 export(conditional_ccf)
