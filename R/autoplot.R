@@ -11,7 +11,6 @@
 #' @return returns plots visualising fitted gam model for conditional
 #' mean or variance vs each predictor.
 #'
-#' @examples
 #'
 #' @seealso \code{\link[mgcv]{plot.gam}}, \code{\link[visreg]{visreg}}
 #'
