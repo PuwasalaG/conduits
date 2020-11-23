@@ -51,6 +51,8 @@ autoplot.conditional_moments <- function(object,
     data_vis <- object$mean_gam$data %>%
       dplyr::select(.data$Timestamp, {{x}}, {{z_numeric}}, {{z_factors}}) %>%
       tidyr::drop_na()
+    summary_mean <- object$mean_gam$fit %>% summary
+    mean_edf <- summary_mean$edf %>% round(digits = 3)
 
     # getting each component of the linear predictor from the fitted model
     fv_mean <- mgcv::predict.gam(mean_fit, type = "terms")
@@ -99,6 +101,7 @@ autoplot.conditional_moments <- function(object,
         dplyr::mutate(partial_resid = resid_mean + !!rlang::sym(s_name_zi))
 
       name_zi <- names_z_numeric[i]
+      edf_zi <- mean_edf[i]
       plot_means[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
         ggplot2::geom_point(ggplot2::aes(x = !!rlang::sym(name_zi),
@@ -114,7 +117,7 @@ autoplot.conditional_moments <- function(object,
                                           ymax = .data$UI),
                     alpha = 0.5,
                     fill = "grey70") +
-        ggplot2::ylab(paste("f(",name_zi,")", sep = ""))
+        ggplot2::ylab(paste("f(",name_zi, ",", edf_zi, ")", sep = ""))
 
       data[[i]] <- data_vis_z %>%
         dplyr::select(.data$Timestamp)
@@ -134,6 +137,8 @@ autoplot.conditional_moments <- function(object,
     data_vis <- object$var_gam$data %>%
       dplyr::select(.data$Timestamp, {{x}}, .data$X_Ex2, {{z_numeric}}, {{z_factors}}) %>%
       tidyr::drop_na()
+    summary_var <- object$var_gam$fit %>% summary
+    var_edf <- summary_var$edf %>% round(digits = 3)
     # getting each component of the linear predictor from the fitted model
     fv_var <- mgcv::predict.gam(var_fit, type = "terms")
 
@@ -181,6 +186,7 @@ autoplot.conditional_moments <- function(object,
         dplyr::mutate(partial_resid = exp(resid_var) + !!rlang::sym(s_name_zi))
 
       name_zi <- names_z_numeric[i]
+      edf_zi <- var_edf[i]
       plot_var[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
         ggplot2::geom_point(ggplot2::aes(x = !!rlang::sym(name_zi),
@@ -196,7 +202,7 @@ autoplot.conditional_moments <- function(object,
                                           ymax = .data$UI),
                              alpha = 0.5,
                              fill = "grey70") +
-        ggplot2::ylab(paste("f(",name_zi,")", sep = ""))
+        ggplot2::ylab(paste("f(",name_zi,",",edf_zi, ")", sep = ""))
 
     }
 
