@@ -12,7 +12,7 @@
 \item{type}{the type of moment want to visualise. This can take one of
 "mean" or "variance"}
 
-\item{...}{further arguments passed to or from other methods}
+\item{...}{ignored}
 }
 \value{
 returns plots visualising fitted gam model for conditional

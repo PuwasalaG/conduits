@@ -12,7 +12,7 @@
 \item{type}{type of the moment to return the model summary. This can take one of
 "mean" or "variance"}
 
-\item{...}{further arguments passed to or from other methods}
+\item{...}{ignored}
 }
 \value{
 returns an object of class summary.gam

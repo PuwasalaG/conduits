@@ -12,7 +12,7 @@
 \item{new_data}{a tibble for which the conditional cross-correlations need to be predicted.
 This tibble should contain all the predictors passed to \code{conditional_ccf} along with the Timestamp.}
 
-\item{...}{further arguments passed to or from other methods}
+\item{...}{ignored}
 }
 \value{
 returns a tibble with the predicted conditional cross-correlations
