@@ -1,5 +1,5 @@
 Package: conduits
-Title: What the Package Does (One Line, Title Case)
+Title: Conditional UI for Time Series normalisation
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Puwasala",
@@ -26,7 +26,7 @@ Imports:
     purrr,
     tibble,
     tidyr,
-    gridExtra
+    gridExtra,
+    ggplot2
 Depends: 
-    R (>= 2.10),
-    ggplot2 (>= 3.3.2)
+    R (>= 4.00)

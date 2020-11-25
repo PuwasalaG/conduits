@@ -6,3 +6,6 @@ magrittr::`%>%`
 #' @export
 rlang::.data
 
+#' @importFrom ggplot2 autoplot
+#' @export
+ggplot2::autoplot

@@ -23,11 +23,8 @@ A function for visualising the fitted generalised additive models for
 conditional means, variances and cross-correlations from
 \code{conditional_ccf} function
 }
-\examples{
-
-}
 \seealso{
-\code{\link[stats]{plot.glm}}, \code{\link[visreg]{visreg}}
+\code{\link[visreg]{visreg}}
 }
 \author{
 Puwasala Gamakumara
