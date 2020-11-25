@@ -319,89 +319,6 @@ waq_down_cleaned <- waq_down %>%
          fDOM = if_else(fDOMAnomalyFlag == 1, as.numeric(NA),
                         fDOM))
 
-
-
-##-- Agggregating into 15 mints interval --##
-
-
-waq_15min_up <- waq_up_cleaned %>%
-  padr::thicken(interval = "15 min", by = "Timestamp",
-                colname = "roundedTime",
-                rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(waq_strm_cols), mean, na.rm = TRUE)
-
-# waq_finalqf_15min_up <- waq_up %>%
-#   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
-#                 rounding = "down") %>%
-#   group_by(roundedTime) %>%
-#   summarise_at(vars(waq_final_qf_cols), max, na.rm = TRUE)
-
-
-waq_15min_down <- waq_down_cleaned %>%
-  padr::thicken(interval = "15 min", by = "Timestamp",
-                colname = "roundedTime", rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(waq_strm_cols), mean, na.rm = TRUE)
-
-# waq_finalqf_15min_down <- waq_down %>%
-#   padr::thicken(interval = "15 min", by = "endDateTime", colname = "roundedTime", rounding = "down") %>%
-#   group_by(roundedTime) %>%
-#   summarise_at(vars(waq_final_qf_cols), max, na.rm = TRUE)
-
-# In EOS data we choose only the surfacewaterElevMean variable
-
-EOS_15min_up <- EOS_5min_up %>%
-  padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
-                rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(level), mean, na.rm = TRUE)
-
-EOS_15min_down <- EOS_5min_down %>%
-  padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
-                rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(level), mean, na.rm = TRUE)
-
-# surface temperature data
-TSW_15min_up <- TSW_5min_up %>%
-  padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
-                rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(temperature), mean, na.rm = TRUE)
-
-TSW_15min_down <- TSW_5min_down %>%
-  padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
-                rounding = "down") %>%
-  group_by(roundedTime) %>%
-  summarise_at(vars(temperature), mean, na.rm = TRUE)
-
-
-# Finally we can merge waq data with the EOS data
-
-
-all_15min_up <- list(waq_15min_up, EOS_15min_up, TSW_15min_up) %>%
-  purrr::reduce(left_join, by = "roundedTime") %>%
-  mutate(site = "upstream")
-
-all_15min_down <- list(waq_15min_down, EOS_15min_down, TSW_15min_down) %>%
-  purrr::reduce(left_join, by = "roundedTime") %>%
-  mutate(site = "downstream")
-
-
-# Joining upstream and downstream together
-
-NEON_PRIN_15min_cleaned <- bind_rows(all_15min_up, all_15min_down) %>%
-  rename("conductance" = specificConductance,
-         "Timestamp" = "roundedTime") %>%
-  select(Timestamp, site, everything())
-
-
-usethis::use_data(NEON_PRIN_15min_cleaned, overwrite = TRUE)
-
-
-
-
 ##-- Agggregating into 5 mints interval --##
 
 waq_5min_up <- waq_up_cleaned %>%
@@ -452,3 +369,87 @@ NEON_PRIN_5min_cleaned <- bind_rows(all_5min_up, all_5min_down) %>%
 
 
 usethis::use_data(NEON_PRIN_5min_cleaned, overwrite = TRUE)
+
+
+# ##-- Agggregating into 15 mints interval --##
+#
+#
+# waq_15min_up <- waq_up_cleaned %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp",
+#                 colname = "roundedTime",
+#                 rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(waq_strm_cols), mean, na.rm = TRUE)
+#
+# # waq_finalqf_15min_up <- waq_up %>%
+# #   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
+# #                 rounding = "down") %>%
+# #   group_by(roundedTime) %>%
+# #   summarise_at(vars(waq_final_qf_cols), max, na.rm = TRUE)
+#
+#
+# waq_15min_down <- waq_down_cleaned %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp",
+#                 colname = "roundedTime", rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(waq_strm_cols), mean, na.rm = TRUE)
+#
+# # waq_finalqf_15min_down <- waq_down %>%
+# #   padr::thicken(interval = "15 min", by = "endDateTime", colname = "roundedTime", rounding = "down") %>%
+# #   group_by(roundedTime) %>%
+# #   summarise_at(vars(waq_final_qf_cols), max, na.rm = TRUE)
+#
+# # In EOS data we choose only the surfacewaterElevMean variable
+#
+# EOS_15min_up <- EOS_5min_up %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
+#                 rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(level), mean, na.rm = TRUE)
+#
+# EOS_15min_down <- EOS_5min_down %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
+#                 rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(level), mean, na.rm = TRUE)
+#
+# # surface temperature data
+# TSW_15min_up <- TSW_5min_up %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
+#                 rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(temperature), mean, na.rm = TRUE)
+#
+# TSW_15min_down <- TSW_5min_down %>%
+#   padr::thicken(interval = "15 min", by = "Timestamp", colname = "roundedTime",
+#                 rounding = "down") %>%
+#   group_by(roundedTime) %>%
+#   summarise_at(vars(temperature), mean, na.rm = TRUE)
+#
+#
+# # Finally we can merge waq data with the EOS data
+#
+#
+# all_15min_up <- list(waq_15min_up, EOS_15min_up, TSW_15min_up) %>%
+#   purrr::reduce(left_join, by = "roundedTime") %>%
+#   mutate(site = "upstream")
+#
+# all_15min_down <- list(waq_15min_down, EOS_15min_down, TSW_15min_down) %>%
+#   purrr::reduce(left_join, by = "roundedTime") %>%
+#   mutate(site = "downstream")
+#
+#
+# # Joining upstream and downstream together
+#
+# NEON_PRIN_15min_cleaned <- bind_rows(all_15min_up, all_15min_down) %>%
+#   rename("conductance" = specificConductance,
+#          "Timestamp" = "roundedTime") %>%
+#   select(Timestamp, site, everything())
+#
+#
+# usethis::use_data(NEON_PRIN_15min_cleaned, overwrite = TRUE)
+
+
+
+
+
