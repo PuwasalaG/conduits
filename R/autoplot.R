@@ -11,6 +11,7 @@
 #' @return returns plots visualising fitted gam model for conditional
 #' mean or variance vs each predictor.
 #'
+#' @importFrom ggplot2 ggplot geom_point aes geom_line geom_ribbon ylab geom_rug
 #'
 #' @seealso \code{\link[mgcv]{plot.gam}}, \code{\link[visreg]{visreg}}
 #'
@@ -230,9 +231,9 @@ autoplot.conditional_moments <- function(object,
 #' @return returns plots visualising fitted gam models for conditional
 #' mean or variance vs each predictor.
 #'
-#' @examples
+#' @importFrom ggplot2 ggplot geom_point aes geom_line geom_ribbon ylab geom_rug
 #'
-#' @seealso \code{\link[stats]{plot.glm}}, \code{\link[visreg]{visreg}}
+#' @seealso \code{\link[visreg]{visreg}}
 #'
 #' @author Puwasala Gamakumara
 #'
@@ -269,8 +270,8 @@ autoplot.conditional_ccf <- function(object,
 
   #Conditional mean of x
 
-  oask <- devAskNewPage(TRUE)
-  on.exit(devAskNewPage(oask))
+  oask <- grDevices::devAskNewPage(TRUE)
+  on.exit(grDevices::devAskNewPage(oask))
 
 
   # visualising conditional means
@@ -344,8 +345,8 @@ autoplot.conditional_ccf <- function(object,
                                             newdata = data_vis_z,
                                             se.fit = T) %>%
           tibble::as_tibble() %>%
-          dplyr::rename("fit_link" = fit,
-                 "se.fit_link" = se.fit) %>%
+          dplyr::rename("fit_link" = .data$fit,
+                 "se.fit_link" = .data$se.fit) %>%
           dplyr::mutate(LI_link = as.numeric((.data$fit_link - .data$se.fit_link)),
                  UI_link = as.numeric((.data$fit_link + .data$se.fit_link)),
                  Timestamp = data_vis_z$Timestamp) %>%
@@ -356,8 +357,8 @@ autoplot.conditional_ccf <- function(object,
                                            newdata = data_vis_z,
                                            se.fit = T) %>%
           tidyr::as_tibble() %>%
-          dplyr::rename("fit_res" = fit,
-                 "se.fit_res" = se.fit) %>%
+          dplyr::rename("fit_res" = .data$fit,
+                 "se.fit_res" = .data$se.fit) %>%
           dplyr::mutate(LI_res = as.numeric((.data$fit_res - .data$se.fit_res)),
                  UI_res = as.numeric((.data$fit_res + .data$se.fit_res)),
                  Timestamp = data_vis_z$Timestamp) %>%
