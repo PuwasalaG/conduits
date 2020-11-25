@@ -5,6 +5,7 @@
 \alias{reexports}
 \alias{\%>\%}
 \alias{.data}
+\alias{autoplot}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -12,6 +13,8 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
+  \item{ggplot2}{\code{\link[ggplot2]{autoplot}}}
+
   \item{magrittr}{\code{\link[magrittr:pipe]{\%>\%}}}
 
   \item{rlang}{\code{\link[rlang:tidyeval-data]{.data}}}
