@@ -7,7 +7,7 @@
 #' @param object an object returned from \code{conditional_moments} function
 #' @param type type of the moment to return the model summary. This can take one of
 #' "mean" or "variance"
-#' @param ... further arguments passed to or from other methods
+#' @param ... ignored
 #'
 #' @return returns an object of class summary.gam
 #'

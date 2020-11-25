@@ -6,7 +6,7 @@
 #' @param object an object returned from \code{conditional_ccf} function
 #' @param new_data  a tibble for which the conditional cross-correlations need to be predicted.
 #' This tibble should contain all the predictors passed to \code{conditional_ccf} along with the Timestamp.
-#' @param ... further arguments passed to or from other methods
+#' @param ... ignored
 #'
 #' @return returns a tibble with the predicted conditional cross-correlations
 #' at lags $k=1,2,...$

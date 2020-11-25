@@ -6,7 +6,7 @@
 #' @param object an object returned from \code{conditional_moments} function
 #' @param type the type of moment want to visualise. This can take one of
 #' "mean" or "variance"
-#' @param ... further arguments passed to or from other methods
+#' @param ... ignored
 #'
 #' @return returns plots visualising fitted gam model for conditional
 #' mean or variance vs each predictor.
