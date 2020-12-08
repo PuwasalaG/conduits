@@ -18,6 +18,10 @@
 #'
 map_lags <- function(data, up, down, lag){
 
+  names_up <- names(tidyselect::eval_select(dplyr::enquo(up), data))
+  names_down <- names(tidyselect::eval_select(dplyr::enquo(down), data))
+  names_lag <- names(tidyselect::eval_select(dplyr::enquo(lag), data))
+
   data <- data %>%
     dplyr::select(.data$Timestamp, {{up}}, {{down}}, {{lag}})
 
@@ -38,7 +42,8 @@ map_lags <- function(data, up, down, lag){
     dplyr::left_join(Time_leads, by = "Timestamp")
 
   df_ref_time_lead <- df_time_lead %>%
-    tidyr::gather(-.data$Timestamp, -{{lag}}, key = "lead", value = "time_d") %>%
+    tidyr::pivot_longer(cols = -c(.data$Timestamp, {{lag}}),
+                  names_to = "lead", values_to = "time_d") %>%
     dplyr::select(.data$Timestamp, .data$lead, .data$time_d) %>%
     dplyr::rename(max_lag = .data$lead) %>%
     dplyr::mutate(max_lag = as.double(.data$max_lag))
@@ -53,7 +58,6 @@ map_lags <- function(data, up, down, lag){
   # preparing upstream data according to the time delay - we take the average if more than one
   # value correspond to the same time_d.
 
-  names_up <- names(tidyselect::eval_select(dplyr::enquo(up), data))
   up_dt <- paste(names_up, "_dt", sep = "")
 
   df_upstream <- data %>%
