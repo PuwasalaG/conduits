@@ -6,6 +6,7 @@
 #' @param object an object returned from \code{conditional_moments} function
 #' @param type the type of moment want to visualise. This can take one of
 #' "mean" or "variance"
+#' @param title if TRUE returning the plot with a title
 #' @param ... ignored
 #'
 #' @return returns plots visualising fitted gam model for conditional
@@ -20,6 +21,7 @@
 #' @export
 autoplot.conditional_moments <- function(object,
                                          type = c("mean", "variance"),
+                                         title = TRUE,
                                          ...){
   type <- match.arg(type)
   x <- object$x
@@ -37,13 +39,7 @@ autoplot.conditional_moments <- function(object,
 
   p <- length(names_z_numeric) + length(names_z_factors)
 
-  if(p <= 2){
-    n_col <- 2
-  }
-
-  if(p > 2){
-    n_col <- 3
-  }
+  n_col <- 2
 
 
 
@@ -125,11 +121,15 @@ autoplot.conditional_moments <- function(object,
 
     }
 
-    gridExtra::grid.arrange(grobs = plot_means,
+    if(title==TRUE){
+      gridExtra::grid.arrange(grobs = plot_means,
                                            ncol = n_col,
                                            top = paste("conditional mean of",
                                                        names_x, sep = " "))
-
+    }else{
+      gridExtra::grid.arrange(grobs = plot_means,
+                              ncol = n_col)
+    }
   }
 
 
@@ -207,11 +207,15 @@ autoplot.conditional_moments <- function(object,
 
     }
 
-    gridExtra::grid.arrange(grobs = plot_var,
-                            ncol = n_col,
-                                           top = paste("conditional variance of",
-                                                       names_x, sep = " "))
-
+    if(title==TRUE){
+      gridExtra::grid.arrange(grobs = plot_var,
+                              ncol = n_col,
+                              top = paste("conditional variance of",
+                                          names_x, sep = " "))
+    }else{
+      gridExtra::grid.arrange(grobs = plot_var,
+                              ncol = n_col)
+    }
   }
 
 }

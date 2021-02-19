@@ -11,6 +11,8 @@
 #' and use c() for multiple variables
 #' @param z_factors factor variable(s) use as predictors. Should be given as bared/unquoted names.
 #' NULL for empty factors or use c() for multiple variables
+#' @param family the family to be used in conditional variance model. Currently
+#' this can take either "Gamma" or "lognormal".
 #' @param k a vector of lag values at which the cross-correlation needs to be computed. Default is
 #' $1:9$
 #' @param knots_mean a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
@@ -50,9 +52,12 @@
 #' @seealso \code{\link[stats]{glm}}, \code{\link[splines]{ns}}
 #'
 #' @export
-conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
+conditional_ccf <- function(data, x, y, z_numeric, z_factors,
+                            family = c("Gamma", "lognormal"),
+                            k = 1:9,
                             knots_mean = NULL, knots_variance = NULL, df_correlation = NULL){
 
+  family <- match.arg(family)
   names_x <- names(tidyselect::eval_select(dplyr::enquo(x), data))
   names_y <- names(tidyselect::eval_select(dplyr::enquo(y), data))
   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
@@ -88,12 +93,14 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors, k = 1:9,
 
   cond_moments_x <- conditional_moments(data = data_x_cond_moments,
                                         x = {{x}},
+                                        family = family,
                                         z_numeric = {{z_numeric}},
                                         knots_mean = knots_mean$x,
                                         knots_variance = knots_variance$x)
 
   cond_moments_y <- conditional_moments(data = data_y_cond_moments,
                                         x = {{y}},
+                                        family = family,
                                         z_numeric = {{z_numeric}},
                                         knots_mean = knots_mean$y,
                                         knots_variance = knots_variance$y)

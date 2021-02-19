@@ -11,6 +11,8 @@
 #' for multiple variables
 #' @param z_factors factor variable(s) use as predictors. Should be given as bared/unquoted names.
 #' NULL for empty factors or use c() for multiple variables
+#' @param family the family to be used in conditional variance model. Currently
+#' this can take either "Gamma" or "lognormal".
 #' @param knots_mean  a vector specifying the dimension of the basis in the smooth term fitting for
 #' each predictor in the GAM for conditional mean of $x$. Each component of the vector should corresponds to each predictor specified in
 #' "z_numeric". Default fitting a $3$ dimentional thin plate regression spline.
@@ -36,9 +38,13 @@
 #' @seealso \code{\link[mgcv]{gam}}
 #'
 #' @export
-conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean = NULL,
+conditional_moments <- function(data, x, z_numeric,
+                                family = c("Gamma", "lognormal"),
+                                z_factors = NULL,
+                                knots_mean = NULL,
                                 knots_variance = NULL) {
 
+  family <- match.arg(family)
   names_x <- names(tidyselect::eval_select(dplyr::enquo(x), data))
   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
   names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), data))
@@ -54,21 +60,38 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
   if(!rlang::is_empty(names_z_factors)){
 
     formula_x_mean <- paste(names_x, "~", paste("s(", names_z_numeric, ", k=", knots_mean,  ")",
-                                           sep = "",  collapse = " + "),
-                       "+", paste(names_z_factors, collapse = " + "),
-                       sep = " ")
-    formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
-                                            sep = "", collapse = " + "),
-                           "+", paste(names_z_factors, collapse = " + "),
-                           sep = " ")
+                                                sep = "",  collapse = " + "),
+                            "+", paste(names_z_factors, collapse = " + "),
+                            sep = " ")
+    if(family == "Gamma"){
+      formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+                                              sep = "", collapse = " + "),
+                             "+", paste(names_z_factors, collapse = " + "),
+                             sep = " ")
+    }
+
+    if(family == "lognormal"){
+      formula_x_var <- paste("log(X_Ex2) ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+                                                   sep = "", collapse = " + "),
+                             "+", paste(names_z_factors, collapse = " + "),
+                             sep = " ")
+    }
+
 
   } else{
     formula_x_mean <- paste(names_x, "~", paste("s(", names_z_numeric, ", k=", knots_mean,  ")",
-                                           sep = "",  collapse = " + "), sep = " ")
-    formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
-                                            sep = "", collapse = " + "), sep = " ")
-
+                                                sep = "",  collapse = " + "), sep = " ")
+    if(family == "Gamma"){
+      formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+                                              sep = "", collapse = " + "), sep = " ")
     }
+    if(family == "lognormal"){
+      formula_x_var <- paste("log(X_Ex2) ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+                                                   sep = "", collapse = " + "), sep = " ")
+    }
+
+
+  }
 
 
   p <- length(names_z_numeric) + length(names_z_factors)
@@ -88,16 +111,38 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
     dplyr::mutate(E_X = as.numeric(mgcv::predict.gam(x_mean_gam, newdata = data)),
                   X_Ex2 = ({{x}} - .data$E_X)^2)
 
-  x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var),
-                         data = data,
-                         family = stats::Gamma(link = "log"))
+  if(family == "Gamma"){
+    x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var),
+                           data = data,
+                           family = stats::Gamma(link = "log"))
+  }
 
-  data_x_cond_moments <- data %>%
-    dplyr::mutate(Var_X = as.numeric(mgcv::predict.gam(x_var_gam, newdata = data,
-                                                       type = "response"))) %>%
-    dplyr::select(-.data$X_Ex2) %>%
-    dplyr::rename_with(.fn = ~paste(c("E_", "Var_"), names_x, sep = ""),
-                       .cols = c(.data$E_X, .data$Var_X))
+  if(family == "lognormal"){
+    x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var),
+                           data = data,
+                           family = stats::gaussian())
+  }
+
+  ##-- Computing Var_x --##
+
+  if(family == "Gamma"){
+    data_x_cond_moments <- data %>%
+      dplyr::mutate(Var_X = as.numeric(mgcv::predict.gam(x_var_gam, newdata = data,
+                                                         type = "response"))) %>%
+      dplyr::select(-.data$X_Ex2) %>%
+      dplyr::rename_with(.fn = ~paste(c("E_", "Var_"), names_x, sep = ""),
+                         .cols = c(.data$E_X, .data$Var_X))
+
+  }
+
+  if(family == "lognormal"){
+    data_x_cond_moments <- data %>%
+      dplyr::mutate(Var_X = exp(as.numeric(mgcv::predict.gam(x_var_gam, newdata = data)))) %>%
+      dplyr::select(-.data$X_Ex2) %>%
+      dplyr::rename_with(.fn = ~paste(c("E_", "Var_"), names_x, sep = ""),
+                         .cols = c(.data$E_X, .data$Var_X))
+
+  }
 
   return(structure(list(data_conditional_moments = data_x_cond_moments,
                         mean_gam = list(fit = x_mean_gam,
@@ -109,6 +154,81 @@ conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean
                    class = "conditional_moments"))
 
 }
+
+# ##-- Conditional moments with only Gamma family for variance
+# conditional_moments <- function(data, x, z_numeric, z_factors = NULL, knots_mean = NULL,
+#                                 knots_variance = NULL) {
+#
+#   names_x <- names(tidyselect::eval_select(dplyr::enquo(x), data))
+#   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
+#   names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), data))
+#
+#   if(is.null(knots_mean)){
+#     knots_mean <- rep(3, length(names_z_numeric))
+#   }
+#
+#   if(is.null(knots_variance)){
+#     knots_variance <- rep(3, length(names_z_numeric))
+#   }
+#
+#   if(!rlang::is_empty(names_z_factors)){
+#
+#     formula_x_mean <- paste(names_x, "~", paste("s(", names_z_numeric, ", k=", knots_mean,  ")",
+#                                            sep = "",  collapse = " + "),
+#                        "+", paste(names_z_factors, collapse = " + "),
+#                        sep = " ")
+#     formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+#                                             sep = "", collapse = " + "),
+#                            "+", paste(names_z_factors, collapse = " + "),
+#                            sep = " ")
+#
+#   } else{
+#     formula_x_mean <- paste(names_x, "~", paste("s(", names_z_numeric, ", k=", knots_mean,  ")",
+#                                            sep = "",  collapse = " + "), sep = " ")
+#     formula_x_var <- paste("X_Ex2 ~", paste("s(", names_z_numeric, ", k=", knots_variance,  ")",
+#                                             sep = "", collapse = " + "), sep = " ")
+#
+#     }
+#
+#
+#   p <- length(names_z_numeric) + length(names_z_factors)
+#
+#
+#   ##-- conditional means --##
+#
+#
+#   x_mean_gam <- mgcv::gam(formula = stats::as.formula(formula_x_mean), data = data)
+#
+#
+#   ##-- conditional variance --##
+#
+#   # first computing conditional means, squared errors from the x_mean_gam and y_mean_gam
+#
+#   data <- data %>%
+#     dplyr::mutate(E_X = as.numeric(mgcv::predict.gam(x_mean_gam, newdata = data)),
+#                   X_Ex2 = ({{x}} - .data$E_X)^2)
+#
+#   x_var_gam <- mgcv::gam(formula = stats::as.formula(formula_x_var),
+#                          data = data,
+#                          family = stats::Gamma(link = "log"))
+#
+#   data_x_cond_moments <- data %>%
+#     dplyr::mutate(Var_X = as.numeric(mgcv::predict.gam(x_var_gam, newdata = data,
+#                                                        type = "response"))) %>%
+#     dplyr::select(-.data$X_Ex2) %>%
+#     dplyr::rename_with(.fn = ~paste(c("E_", "Var_"), names_x, sep = ""),
+#                        .cols = c(.data$E_X, .data$Var_X))
+#
+#   return(structure(list(data_conditional_moments = data_x_cond_moments,
+#                         mean_gam = list(fit = x_mean_gam,
+#                                         data = data),
+#                         var_gam = list(fit = x_var_gam,
+#                                        data = data),
+#                         x = dplyr::enexpr(x), z_numeric = dplyr::enexpr(z_numeric),
+#                         z_factors = dplyr::enexpr(z_factors)),
+#                    class = "conditional_moments"))
+#
+# }
 
 
 

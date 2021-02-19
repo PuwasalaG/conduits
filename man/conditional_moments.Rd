@@ -8,6 +8,7 @@ conditional_moments(
   data,
   x,
   z_numeric,
+  family = c("Gamma", "lognormal"),
   z_factors = NULL,
   knots_mean = NULL,
   knots_variance = NULL
@@ -21,6 +22,9 @@ corresponding Timestamp.}
 
 \item{z_numeric}{numerical variable(s) use as predictors. Should be given as bared/unquoted names and use c()
 for multiple variables}
+
+\item{family}{the family to be used in conditional variance model. Currently
+this can take either "Gamma" or "lognormal".}
 
 \item{z_factors}{factor variable(s) use as predictors. Should be given as bared/unquoted names.
 NULL for empty factors or use c() for multiple variables}

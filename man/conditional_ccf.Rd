@@ -10,6 +10,7 @@ conditional_ccf(
   y,
   z_numeric,
   z_factors,
+  family = c("Gamma", "lognormal"),
   k = 1:9,
   knots_mean = NULL,
   knots_variance = NULL,
@@ -29,6 +30,9 @@ and use c() for multiple variables}
 
 \item{z_factors}{factor variable(s) use as predictors. Should be given as bared/unquoted names.
 NULL for empty factors or use c() for multiple variables}
+
+\item{family}{the family to be used in conditional variance model. Currently
+this can take either "Gamma" or "lognormal".}
 
 \item{k}{a vector of lag values at which the cross-correlation needs to be computed. Default is
 $1:9$}
