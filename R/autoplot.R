@@ -39,8 +39,13 @@ autoplot.conditional_moments <- function(object,
 
   p <- length(names_z_numeric) + length(names_z_factors)
 
-  n_col <- 2
+  if(p <= 2){
+    n_col <- 2
+  }
 
+  if(p > 2){
+    n_col <- 3
+  }
 
 
   if(type == "mean"){
@@ -99,6 +104,8 @@ autoplot.conditional_moments <- function(object,
 
       name_zi <- names_z_numeric[i]
       edf_zi <- mean_edf[i]
+      range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
+
       plot_means[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
         ggplot2::geom_point(ggplot2::aes(x = !!rlang::sym(name_zi),
@@ -114,7 +121,8 @@ autoplot.conditional_moments <- function(object,
                                           ymax = .data$UI),
                     alpha = 0.5,
                     fill = "grey70") +
-        ggplot2::ylab(paste("f(",name_zi, ",", edf_zi, ")", sep = ""))
+        ggplot2::ylab(paste("f(",name_zi, ",", edf_zi, ")", sep = "")) +
+        ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()(range_zi))
 
       data[[i]] <- data_vis_z %>%
         dplyr::select(.data$Timestamp)
@@ -188,6 +196,8 @@ autoplot.conditional_moments <- function(object,
 
       name_zi <- names_z_numeric[i]
       edf_zi <- var_edf[i]
+      range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
+
       plot_var[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
         ggplot2::geom_point(ggplot2::aes(x = !!rlang::sym(name_zi),
@@ -203,7 +213,8 @@ autoplot.conditional_moments <- function(object,
                                           ymax = .data$UI),
                              alpha = 0.5,
                              fill = "grey70") +
-        ggplot2::ylab(paste("f(",name_zi,",",edf_zi, ")", sep = ""))
+        ggplot2::ylab(paste("f(",name_zi,",",edf_zi, ")", sep = "")) +
+        ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()(range_zi))
 
     }
 
