@@ -375,6 +375,7 @@ autoplot.conditional_ccf <- function(object,
           purrr::reduce(dplyr::left_join, by = "Timestamp")
 
         name_zi <- names_z_numeric[i]
+        range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
 
         plot_link[[i]] <- data_vis_z %>%
           ggplot() +
@@ -387,6 +388,7 @@ autoplot.conditional_ccf <- function(object,
                           ymin = .data$LI_link, ymax = .data$UI_link),
                       alpha = 0.5,
                       fill = "grey70") +
+          scale_x_continuous(breaks = scales::pretty_breaks()(range_zi)) +
           ylab(paste("f(",name_zi,")", sep = ""))
 
         plot_response[[i]] <- ggplot() +
@@ -407,7 +409,8 @@ autoplot.conditional_ccf <- function(object,
                      dplyr::filter(.data$resid_ccf < 0),
                    aes(x = !!rlang::sym(name_zi), y = linkinv(.data$resid_ccf)),
                    sides = "b", color = "#666666") +
-          ylab(paste("r_", j, sep = ""))
+          scale_x_continuous(breaks = scales::pretty_breaks()(range_zi)) +
+          ylab(bquote(c[.(j)]))
 
       }
 

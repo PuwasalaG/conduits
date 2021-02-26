@@ -27,6 +27,7 @@ Imports:
     tibble,
     tidyr,
     gridExtra,
-    ggplot2
+    ggplot2,
+    scales
 Depends: 
     R (>= 4.00)
