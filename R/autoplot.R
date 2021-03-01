@@ -138,6 +138,8 @@ autoplot.conditional_moments <- function(object,
       gridExtra::grid.arrange(grobs = plot_means,
                               ncol = n_col)
     }
+
+    plot_list <- plot_means
   }
 
 
@@ -227,8 +229,11 @@ autoplot.conditional_moments <- function(object,
       gridExtra::grid.arrange(grobs = plot_var,
                               ncol = n_col)
     }
+
+    plot_list <- plot_var
   }
 
+  return(plot_list)
 }
 
 
@@ -241,6 +246,7 @@ autoplot.conditional_moments <- function(object,
 #' @param object an object returned from \code{conditional_ccf} function
 #' @param type the type of moment or cross-correlation to visualise.
 #' This can take one of "mean", "variance" or "cross-correlation"
+#' @param k a vector specifying upto how many lags to be plotted for cross-correlation
 #' @param ... further arguments passed to or from other methods
 #'
 #' @return returns plots visualising fitted gam models for conditional
@@ -256,6 +262,7 @@ autoplot.conditional_moments <- function(object,
 autoplot.conditional_ccf <- function(object,
                                      type = c("mean", "variance",
                                               "cross-correlation"),
+                                     k = NULL,
                                      ...){
 
   type <- match.arg(type)
@@ -265,7 +272,11 @@ autoplot.conditional_ccf <- function(object,
   z_numeric <- object$other$z_numeric
   z_factors <- object$other$z_factors
 
-  k <- object$other$k
+  if(is.null(k)){
+    k <- object$other$k
+  }
+
+
   cond_moment_x <- object$data_visualise$conditional_moments$x
   cond_moment_y <- object$data_visualise$conditional_moments$y
 
@@ -308,6 +319,11 @@ autoplot.conditional_ccf <- function(object,
   }
 
   # visualising conditional cross-correlations
+
+  plot_list <- list()
+  plot_list[[1]] <- list()
+  plot_list[[2]] <- list()
+
   if(type == "cross-correlation"){
 
     for (j in seq_along(k)) {
@@ -430,7 +446,16 @@ autoplot.conditional_ccf <- function(object,
                               gridExtra::arrangeGrob(grobs = plot_response, ncol = n_col,
                                top = "response scale"),
                               top = paste("k=", j, sep = ""))
+      plot_list[[1]][[j]] <- plot_link
+      plot_list[[2]][[j]] <- plot_response
     }
+
+    names(plot_list) <- c("plots_link", "plots_response")
+
+    names(plot_list$plots_link) <- paste("k=", k, sep = "")
+    names(plot_list$plots_response) <- paste("k=", k, sep = "")
+
+    return(plot_list)
 
 
   }

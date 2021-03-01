@@ -4,13 +4,20 @@
 \alias{autoplot.conditional_ccf}
 \title{Visualising the models fitted for conditional cross-correlations}
 \usage{
-\method{autoplot}{conditional_ccf}(object, type = c("mean", "variance", "cross-correlation"), ...)
+\method{autoplot}{conditional_ccf}(
+  object,
+  type = c("mean", "variance", "cross-correlation"),
+  k = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{an object returned from \code{conditional_ccf} function}
 
 \item{type}{the type of moment or cross-correlation to visualise.
 This can take one of "mean", "variance" or "cross-correlation"}
+
+\item{k}{a vector specifying upto how many lags to be plotted for cross-correlation}
 
 \item{...}{further arguments passed to or from other methods}
 }
