@@ -104,7 +104,7 @@ autoplot.conditional_moments <- function(object,
 
       name_zi <- names_z_numeric[i]
       edf_zi <- mean_edf[i]
-      range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
+      range_zi <- data_vis_z %>% dplyr::pull(!!rlang::sym(name_zi))
 
       plot_means[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
@@ -198,7 +198,7 @@ autoplot.conditional_moments <- function(object,
 
       name_zi <- names_z_numeric[i]
       edf_zi <- var_edf[i]
-      range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
+      range_zi <- data_vis_z %>% dplyr::pull(!!rlang::sym(name_zi))
 
       plot_var[[i]] <- data_vis_z %>%
         ggplot2::ggplot() +
@@ -233,7 +233,7 @@ autoplot.conditional_moments <- function(object,
     plot_list <- plot_var
   }
 
-  return(plot_list)
+  invisible(plot_list)
 }
 
 
@@ -253,6 +253,7 @@ autoplot.conditional_moments <- function(object,
 #' mean or variance vs each predictor.
 #'
 #' @importFrom ggplot2 ggplot geom_point aes geom_line geom_ribbon ylab geom_rug
+#' scale_x_continuous scale_y_continuous
 #'
 #' @seealso \code{\link[visreg]{visreg}}
 #'
@@ -326,7 +327,7 @@ autoplot.conditional_ccf <- function(object,
 
   if(type == "cross-correlation"){
 
-    for (j in seq_along(k)) {
+    for (j in k) {
 
       ccf_gam_fit_k <- object$data_visualise$conditional_ccf$ccf_gam_fit[[j]]
 
@@ -402,7 +403,7 @@ autoplot.conditional_ccf <- function(object,
           purrr::reduce(dplyr::left_join, by = "Timestamp")
 
         name_zi <- names_z_numeric[i]
-        range_zi <- data_vis_z %>% pull(!!rlang::sym(name_zi))
+        range_zi <- data_vis_z %>% dplyr::pull(!!rlang::sym(name_zi))
 
         plot_link[[i]] <- data_vis_z %>%
           ggplot() +
@@ -455,9 +456,364 @@ autoplot.conditional_ccf <- function(object,
     names(plot_list$plots_link) <- paste("k=", k, sep = "")
     names(plot_list$plots_response) <- paste("k=", k, sep = "")
 
-    return(plot_list)
+    invisible(plot_list)
 
 
   }
 
 }
+
+
+
+
+#' Visualising the lag time \eqn{d_t}
+#'
+#' A function to visualise the estimated lag time, \eqn{d_t}, with each
+#' of the predictor used is conditional cross-correlation models. The
+#' prediction intervals are computed using the Sieve bootstrap method (Buhlmann 1997)
+#'
+#' @param object an object returned from \code{estimate_dt} function
+#' @param interval if TRUE, the bootstrap prediction intervals are computed.
+#' This will increase the computation time.Default is setted to FALSE.
+#' @param m number of replications when getting boostrap prediction intervals
+#' for \eqn{d_t}
+#' @param seed setting seed
+#' @param ... further arguments passed to or from other methods
+#'
+#' @return returns plots visualising \eqn{d_t} with each predictor used
+#' in conditional cross-correlation functions. Further it returns a list of
+#' following components
+#' \item{plot_list}{list of plots - ggplot objects}
+#' \item{data}{data used to create individual plots}
+#'
+#'
+#' @importFrom ggplot2 ggplot geom_point aes geom_line geom_ribbon ylab
+#' geom_rug scale_y_discrete xlab
+#'
+#' @author Puwasala Gamakumara
+#'
+#' @references Bühlmann, P. (1997). Sieve bootstrap for time series. Bernoulli, 3(2), 123-148.
+#'
+#' @export
+autoplot.estimate_dt <- function(object,
+                                 interval = FALSE,
+                                 m = 100,
+                                 seed = NULL,
+                                 ...){
+
+  # choose the data used to fit conditional-ccf model
+  data <- object$conditional_ccf_object$data_visualise$conditional_ccf$data_ccf_fit
+
+  x <- object$conditional_ccf_object$other$x
+  y <- object$conditional_ccf_object$other$y
+  z_numeric <- object$conditional_ccf_object$other$z_numeric
+  z_factors <- object$conditional_ccf_object$other$z_factors
+  k <- object$conditional_ccf_object$other$k
+  k_min <- object$k_min
+  k_max <- object$k_max
+
+  names_x <- names(tidyselect::eval_select(dplyr::enquo(x), object$data_dt))
+  names_y <- names(tidyselect::eval_select(dplyr::enquo(y), object$data_dt))
+  names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
+  names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), data))
+
+  p <- length(names_z_numeric) + length(names_z_factors)
+
+  formula_XY <- object$conditional_ccf_object$formula_gam
+
+  ccf_gam_fit <- object$conditional_ccf_object$data_visualise$conditional_ccf$ccf_gam_fit
+
+  df_correlation = object$conditional_ccf_object$other$df_correlation
+  names_XY <- paste("XY", k, "_star", sep = "")
+
+  Time <- data$Timestamp
+
+
+  # preparing data for each predictor holding other predictors at their medians.
+  ### NOTE - This part only consider numerical predictors. Improve this to adupt for factors as well
+
+  list_visualise_data <- list(p)
+
+  # selecting predictors
+  data_predictors <- data %>%
+    dplyr::select(Timestamp, {{z_numeric}}, {{z_factors}})
+
+  for (i in seq_along(names_z_numeric)) {
+    z_i <- data_predictors %>% dplyr::pull(names_z_numeric[i])
+    z_i <- seq(from = min(z_i, na.rm = T),
+               to = max(z_i, na.rm = T),
+               length.out = 300)
+    z_i_ <- data %>%
+      dplyr::select(Timestamp, dplyr::all_of(names_z_numeric[-i]),
+             {{z_factors}}) %>%
+      dplyr::mutate_at(names_z_numeric[-i],
+                ~ quantile(., probs = 0.5, na.rm = T)) %>%
+      dplyr::slice(1:300)
+
+    if(!is.null(z_factors)){
+      z_i_ <- z_i_
+      dplyr::mutate_at(names_z_factors, ~names(which.max(table(.))))
+    }
+
+    z_i_name <- names_z_numeric[i]
+    new_data_bs <- tibble::tibble(Timestamp = data$Timestamp[1:300],
+                          z_i = z_i)
+    colnames(new_data_bs) <- c("Timestamp", z_i_name)
+
+    new_data_bs <- new_data_bs %>%
+      dplyr::left_join(z_i_, by = "Timestamp")
+
+
+    list_visualise_data[[i]] <- list(2)
+    list_visualise_data[[i]][[1]] <- new_data_bs
+
+  }
+
+  names(list_visualise_data) <- names_z_numeric
+
+  # computing point estimates of dt
+  for (i in 1:p) {
+
+    data_vis_dt <- estimate_dt(object = object$conditional_ccf_object,
+                               new_data = list_visualise_data[[i]][[1]])
+    data_vis_dt <- data_vis_dt$data_dt %>%
+      dplyr::select(.data$Timestamp, names_z_numeric[i], .data$dt,
+                    .data$ccf) %>%
+      dplyr::rename("max_lag" = .data$dt)
+
+    list_visualise_data[[i]][[2]] <- data_vis_dt
+    names(list_visualise_data[[i]]) <- c("new_data", "data_vis_dt")
+
+  }
+
+
+  ##-- computing interval estimates of dt via Sieve bootstrap method
+
+  if(interval==TRUE){
+
+    ##-- fitting arma model to the residuals from each conditional ccf model
+
+    # predictions from conditional ccf models
+    ccf_predictions <- purrr::lift(modelr::gather_predictions, data = data_predictors)(ccf_gam_fit)
+
+    # calculating the residuals from conditional ccf models
+    df_ccf_response <- data %>%
+      dplyr::select(dplyr::all_of(paste0("XY", k, "_star", sep = "")))
+    df_ccf_predictions <- ccf_predictions %>%
+      dplyr::mutate(model = factor(.data$model, levels = paste0("k = ", k, sep = ""),
+                            labels = paste0("XY", k, "_star_hat", sep = ""))) %>%
+      tidyr::spread(key = .data$model, value = .data$pred) %>%
+      dplyr::select(-.data$Timestamp, -{{z_numeric}})
+    df_ccf_resid <- df_ccf_response - df_ccf_predictions
+
+    # fitting arma models to the gam residuals
+    arma_fit <- apply(df_ccf_resid, 2, forecast::auto.arima,
+                      approximation = FALSE, stepwise = FALSE,
+                      max.q = 0, d = 0, max.order = 20)
+
+    # a function to bootstrap residuals
+    func_bootstrap_resid <- function(model, size){
+
+      resid <- stats::residuals(model)
+      bs_resid <- sample(resid, size = size, replace = T)
+
+      return(bs_resid)
+    }
+
+
+    N <- nrow(data)
+    if(is.null(seed)){
+      seed = 1989
+    }
+
+    corrl <- corrlink()
+
+    # defining a list for each z
+    DF_ccf_bootstrap_z <- list()
+    for (i in 1:p) {
+      DF_ccf_bootstrap_z[[i]] <- list()
+    }
+
+    j = 1
+    size_df = 0
+
+    set.seed(seed)
+    start_time <- Sys.time()
+    while (size_df < m) { # j = 13, 43
+
+      ##-- bootstrapped data by bootstrapping arma residuals
+      bs_resid <- purrr::map_df(.x = arma_fit, .f = func_bootstrap_resid,
+                         size = N)
+
+      # calculating bootstrap gam residuals
+      df_arma_fitted <- purrr::map_df(.x = arma_fit, .f = stats::fitted)
+      df_bootstrap_gam_resid <- df_arma_fitted + bs_resid
+
+      # calculating bootstrap data
+      bootstrap_data <- df_ccf_predictions + df_bootstrap_gam_resid
+      colnames(bootstrap_data) <- paste0("XY", k, "_star", sep = "")
+
+      bootstrap_data <- data_predictors %>%
+        dplyr::bind_cols(bootstrap_data)
+
+
+      ##-- Fitting gam models for conditional ccf at each lag
+      bs_ccf_gam_fit <- list()
+
+      for (l in seq_along(names_XY)) {
+
+        data_ccf_gam <- bootstrap_data %>%
+          dplyr::select(.data$Timestamp, names_XY[l], {{z_numeric}}) %>%
+          dplyr::rename(XY = names_XY[l])
+
+        GLM_out <- tryCatch(stats::glm(formula = stats::as.formula(formula_XY),
+                                data = data_ccf_gam,
+                                family = stats::gaussian(link = corrl),
+                                start = rep(0,(sum(df_correlation))),
+                                control = stats::glm.control(maxit = 400)),
+                            error = function(e)print("error"))
+
+        suppressWarnings(if(class(GLM_out) == "character") {
+          break
+        } else {
+          bs_ccf_gam_fit[[l]] <- GLM_out
+        })
+
+
+
+      }
+
+      if(length(bs_ccf_gam_fit) == max(k)){
+
+        names(bs_ccf_gam_fit) <- paste("k = ", min(k):max(k), sep = "")
+        for (i in 1:p) {
+
+          bs_df_ccf_max <- purrr::map_dfc(bs_ccf_gam_fit, stats::predict.glm,
+                                          newdata = list_visualise_data[[i]][[1]],
+                                          type = "response")
+
+          bs_df_ccf_max <- bs_df_ccf_max %>%
+            as.data.frame() %>%
+            dplyr::mutate(Timestamp = Time[1:300])
+          names(bs_df_ccf_max) <- c(k, "Timestamp")
+
+          bs_df_ccf_max <- bs_df_ccf_max %>%
+            dplyr::as_tibble() %>%
+            tidyr::gather(-.data$Timestamp, key = max_lag,
+                          value = ccf) %>%
+            dplyr::filter(.data$max_lag %in% seq(k_min, k_max)) %>%
+            dplyr::group_by(.data$Timestamp) %>%
+            dplyr::slice(which.max(.data$ccf)) %>%
+            dplyr::ungroup() %>%
+            dplyr::mutate(bootstrap_index = rep(j, dplyr::n()))
+          # slice(which.max(abs(ccf)))
+
+          # i is for each z and j is for each bootstrap sample
+          DF_ccf_bootstrap_z[[i]][[j]] <- bs_df_ccf_max
+
+          # to remove null objects
+          DF_ccf_bootstrap_z[[i]] <- purrr::compact(DF_ccf_bootstrap_z[[i]])
+
+        }
+
+      }
+
+      size_df <- length(DF_ccf_bootstrap_z[[1]])
+      j = j+1
+      # print(c(j, size_df))
+
+
+    }
+    end_time <- Sys.time()
+
+    # calculating bootstrap intervals
+    for (i in 1:p) {
+
+      DF_ccf_bootstrap <- dplyr::bind_rows(DF_ccf_bootstrap_z[[i]])
+
+      DF_ccf_bootstrap_CI <- DF_ccf_bootstrap %>%
+        dplyr::as_tibble() %>%
+        dplyr::mutate(max_lag = as.numeric(.data$max_lag)) %>%
+        dplyr::group_by(.data$Timestamp) %>%
+        dplyr::summarise(dt_95_LI = round(stats::quantile(.data$max_lag, probs = c(0.025))),
+                         dt_95_UI = round(stats::quantile(.data$max_lag, probs = c(0.975))),
+                         ccf_95_LI = round(stats::quantile(.data$ccf, probs = c(0.025))),
+                         ccf_95_UI = round(stats::quantile(.data$ccf, probs = c(0.975))),
+                         dt_80_LI = round(stats::quantile(.data$max_lag, probs = c(0.1))),
+                         dt_80_UI = round(stats::quantile(.data$max_lag, probs = c(0.9))),
+                         ccf_80_LI = round(stats::quantile(.data$ccf, probs = c(0.1))),
+                         ccf_80_UI = round(stats::quantile(.data$ccf, probs = c(0.9))))
+
+      list_visualise_data[[i]][[2]] <- list_visualise_data[[i]][[2]] %>%
+        dplyr::left_join(DF_ccf_bootstrap_CI, by = "Timestamp") %>%
+        dplyr::mutate(max_lag = factor(.data$max_lag, levels = k_min:k_max))
+
+    }
+
+  }
+
+
+  plot_list <- list()
+
+  for (i in 1:p) {
+
+    if(interval==TRUE){
+      z_i <- names_z_numeric[i]
+      plot_list[[i]] <- list_visualise_data[[i]]$data_vis_dt %>%
+        ggplot(aes(x = !!rlang::sym(z_i) , y = .data$max_lag)) +
+        geom_point() +
+        geom_ribbon(aes(ymin = .data$dt_95_LI, ymax = .data$dt_95_UI,
+                        group = 1),
+                    alpha = 0.3, fill = "gray60") +
+        geom_ribbon(aes(ymin = .data$dt_80_LI, ymax = .data$dt_80_UI,
+                        group = 1),
+                    alpha = 0.3, fill = "gray30") +
+        scale_y_discrete(limits = factor(k), breaks = seq(2, max(k), 4)) +
+        ylab(expression(italic(d[t]))) + xlab(names_z_numeric[i])
+    }
+
+    if(interval==FALSE){
+      z_i <- names_z_numeric[i]
+      plot_list[[i]] <- list_visualise_data[[i]]$data_vis_dt %>%
+        dplyr::filter(!is.na(max_lag)) %>%
+        ggplot(aes(x = !!rlang::sym(z_i) , y = .data$max_lag)) +
+        geom_point() +
+        scale_y_discrete(limits = factor(k), breaks = seq(2, max(k), 4)) +
+        ylab(expression(italic(d[t]))) + xlab(names_z_numeric[i])
+    }
+
+  }
+
+
+  if(p <= 2){
+    n_col <- 2
+  }
+
+  if(p > 2){
+    n_col <- 3
+  }
+
+  gridExtra::grid.arrange(gridExtra::arrangeGrob(grobs = plot_list, ncol = n_col))
+  invisible(list(plot_list = plot_list,
+                 data = list_visualise_data))
+
+}
+
+##-- User defined link function
+corrlink <- function() {
+  ## link
+  linkfun <- function(mu) {log((1+mu)/(1-mu))}
+  ## inverse link
+  linkinv <- function(eta) {(exp(eta) - 1)/(exp(eta) + 1)}
+  ## derivative of invlink wrt eta
+  mu.eta <- function(eta) { 2*exp(eta)/(exp(eta) + 1)^2 }
+  valideta <- function(eta) TRUE
+  link <- "corrlink"
+  structure(list(linkfun = linkfun,
+                 linkinv = linkinv,
+                 mu.eta = mu.eta,
+                 valideta = valideta,
+                 name = link),
+            class = "link-glm")
+}
+

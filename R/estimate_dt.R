@@ -57,6 +57,6 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
                         conditional_ccf_object = object,
                         k_min = k_min,
                         k_max = k_max),
-                   class = "conditional_lag"))
+                   class = "estimate_dt"))
 
 }

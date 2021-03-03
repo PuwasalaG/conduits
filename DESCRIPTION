@@ -28,6 +28,12 @@ Imports:
     tidyr,
     gridExtra,
     ggplot2,
-    scales
+    scales,
+    forecast,
+    modelr
 Depends: 
     R (>= 4.00)
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

@@ -1,10 +1,9 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# conduits (CONDitional UI for Time Series normalization)
+# conduits (CONDitional UI for Time Series normalisation)
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 Package `conduits` provides an user interface for conditionally
@@ -36,7 +35,7 @@ one of the aquatic NEON field sites hosted by the US Forest Service.
 This data contains water-quality variables such as, turbidity, specific
 conductance, dissolved oxygen, pH and fDOM along with surface elevation
 and surface temperature from two sites located about 200m apart. Data
-are available from \(2019-07-01\) to \(2019-12-31\) at every 5 mintues.
+are available from 2019 − 07 − 01 to 2019 − 12 − 31 at every 5 mintues.
 
 In this example we choose turbidity from upstream and downstream sites
 to calculate the cross-correlation while conditioning on level,
@@ -46,7 +45,6 @@ Let us first prepare data as follows
 
 ``` r
 library(conduits)
-#> Loading required package: ggplot2
 library(lubridate)
 #> 
 #> Attaching package: 'lubridate'
@@ -55,10 +53,10 @@ library(lubridate)
 #>     date, intersect, setdiff, union
 library(tidyverse)
 #> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
-#> ✓ tibble  3.0.4     ✓ dplyr   1.0.2
-#> ✓ tidyr   1.1.2     ✓ stringr 1.4.0
-#> ✓ readr   1.3.1     ✓ forcats 0.5.0
-#> ✓ purrr   0.3.4
+#> ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
+#> ✓ tibble  3.1.0     ✓ dplyr   1.0.4
+#> ✓ tidyr   1.1.3     ✓ stringr 1.4.0
+#> ✓ readr   1.4.0     ✓ forcats 0.5.1
 #> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 #> x lubridate::as.difftime() masks base::as.difftime()
 #> x lubridate::date()        masks base::date()
@@ -107,7 +105,6 @@ The following code shows how to use the `conditional_moments` function
 to normalise turbidity from upstream sites.
 
 ``` r
-
 cond_moments_x <- data_normalisation %>% 
   conditional_moments(x = turbidity_up,
                       z_numeric = c(level_up, temperature_up,
@@ -133,7 +130,6 @@ variances by passing the `cond_moments_x` object to the `autoplot`
 method.
 
 ``` r
-
 autoplot(cond_moments_x, type = "mean")
 ```
 
