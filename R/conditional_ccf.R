@@ -90,6 +90,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
   data_y_cond_moments <- data_NEW %>%
     dplyr::select(.data$Timestamp, {{y}}, {{z_numeric}}, {{z_factors}})
 
+  #computing conditional moments for x
 
   cond_moments_x <- conditional_moments(data = data_x_cond_moments,
                                         x = {{x}},
@@ -98,42 +99,70 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
                                         knots_mean = knots_mean$x,
                                         knots_variance = knots_variance$x)
 
-  cond_moments_y <- conditional_moments(data = data_y_cond_moments,
-                                        x = {{y}},
-                                        family = family,
-                                        z_numeric = {{z_numeric}},
-                                        knots_mean = knots_mean$y,
-                                        knots_variance = knots_variance$y)
-
   data_x_cond_moments <- cond_moments_x$data_conditional_moments %>%
-    dplyr::select(-{{x}}, -{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
-  data_y_cond_moments <- cond_moments_y$data_conditional_moments %>%
-    dplyr::select(-{{y}}, -{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
+    dplyr::select(-{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
+
+  #computing conditional moments for y_t+k at each k
+
+  data_y_k_cond_moments <- list()
+  cond_moments_y_out <- list()
+
+  for (i in k) {
+    data_y <- data_y_cond_moments %>%
+      dplyr::mutate_at(vars({{y}}), dplyr::lead, n=i)
+
+    cond_moments_y_out[[i]] <- conditional_moments(data = data_y,
+                                                   x = {{y}},
+                                                   family = family,
+                                                   z_numeric = {{z_numeric}},
+                                                   knots_mean = knots_mean$y,
+                                                   knots_variance = knots_variance$y)
+
+    data_y_k_cond_moments[[i]] <- cond_moments_y_out[[i]]$data_conditional_moments %>%
+      dplyr::select(-{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
 
 
-  data_cond_moments <- list(data_NEW, data_x_cond_moments, data_y_cond_moments) %>%
-    purrr::reduce(dplyr::left_join, by = "Timestamp")
+  }
+
+  #computing the conditionally normalised X_t and Y_t+k, i.e., X* and Y*_t+k
 
   E_X <- paste("E_", names_x, sep = "")
   E_Y <- paste("E_", names_y, sep = "")
   Var_X <- paste("Var_", names_x, sep = "")
   Var_Y <- paste("Var_", names_y, sep = "")
 
-  data_estim_r_gam <- data_cond_moments %>%
-    dplyr::mutate(X_star = as.numeric(({{x}} - !!rlang::sym(E_X))/sqrt(!!rlang::sym(Var_X))),
-                  Y_star = as.numeric(({{y}} - !!rlang::sym(E_Y))/sqrt(!!rlang::sym(Var_Y)))) %>%
-    dplyr::select(.data$Timestamp, .data$Y_star, .data$X_star, {{z_numeric}},
-                  !!rlang::enexpr(names_z_factors))
+  #for x
+  data_x_cond_moments <- data_x_cond_moments %>%
+    dplyr::mutate(X_star = as.numeric(({{x}} - !!rlang::sym(E_X))/sqrt(!!rlang::sym(Var_X))))
+
+  #for y_t+k
+  for (i in k) {
+    data_y_k_cond_moments[[i]] <- data_y_k_cond_moments[[i]] %>%
+      dplyr::mutate(Y_star = as.numeric(({{y}} - !!rlang::sym(E_Y))/sqrt(!!rlang::sym(Var_Y))))
+
+  }
+
+  ##-- Computing x*y*_t+k --##
+
+  DF_XY_star <- data_x_cond_moments %>%
+    select(Timestamp)
+
+  for (i in k) {
+    X_star <- data_x_cond_moments %>% pull(X_star)
+    Y_star <- data_y_k_cond_moments[[i]] %>% pull(Y_star)
+    DF_XY_star <- DF_XY_star %>%
+      dplyr::mutate("XY_{i}_star" := X_star*Y_star)
+
+  }
 
 
+  data_estim_r_gam <- data_NEW %>%
+    dplyr::select(.data$Timestamp, {{z_numeric}},
+                  !!rlang::enexpr(names_z_factors)) %>%
+    dplyr::left_join(DF_XY_star, by = "Timestamp")
 
-  ##--computing X*Y_k* --##
 
-  data_estim_r_gam <- compute_XY_star(data_estim_r_gam, k = k)
-  names_XY <- paste("XY", k, "_star", sep = "")
-
-
-  ##-- computing cross-correlation at lags k --##
+  ##-- Computing cross-correlation at lags k --##
 
   if(!rlang::is_empty(names_z_factors)){
     formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=",
@@ -151,6 +180,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
   ccf_gam_fit <- list()
   DF_ccf_max <- matrix(0, ncol = length(k), nrow = nrow(data_NEW))
   corrl <- corrlink()
+  names_XY <- paste("XY_", k, "_star", sep = "")
 
   for (i in k) {
 
@@ -182,9 +212,9 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
 
   return(structure(list(data_ccf = DF_ccf_max,
                         data_visualise = list(conditional_moments = list(x = cond_moments_x,
-                                                                         y = cond_moments_y),
+                                                                         y = cond_moments_y_out),
                                               conditional_ccf = list(ccf_gam_fit = ccf_gam_fit,
-                                                              data_ccf_fit = data_estim_r_gam)),
+                                                                     data_ccf_fit = data_estim_r_gam)),
                         formula_gam = formula_XY,
                         other = list(x = rlang::enexpr(x), y = rlang::enexpr(y),
                                      z_numeric = rlang::enexpr(z_numeric),
