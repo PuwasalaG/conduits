@@ -124,6 +124,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
 
   }
 
+
   #computing the conditionally normalised X_t and Y_t+k, i.e., X* and Y*_t+k
 
   E_X <- paste("E_", names_x, sep = "")
@@ -209,6 +210,9 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
 
   DF_ccf_max <- data %>%
     dplyr::left_join(DF_ccf_max, by = "Timestamp")
+
+  #naming cond_moments_y_out
+  names(cond_moments_y_out) <- paste("k = ", k, sep = "")
 
   return(structure(list(data_ccf = DF_ccf_max,
                         data_visualise = list(conditional_moments = list(x = cond_moments_x,
