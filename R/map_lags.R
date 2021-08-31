@@ -65,7 +65,7 @@ map_lags <- function(data, up, down, lag){
     dplyr::rename(max_lag = {{lag}}) %>%
     dplyr::inner_join(df_ref_time_lead, by = c("Timestamp", "max_lag")) %>%
     dplyr::group_by(.data$time_d) %>%
-    dplyr::summarise_at(dplyr::vars({{up}}), ~mean(.)) %>%
+    dplyr::summarise_at(dplyr::vars({{up}}), ~mean(., na.rm = T)) %>%
     dplyr::ungroup() %>%
     dplyr::arrange(.data$time_d)
 
