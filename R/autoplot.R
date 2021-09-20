@@ -598,7 +598,7 @@ autoplot.estimate_dt <- function(object,
 
     # calculating the residuals from conditional ccf models
     df_ccf_response <- data %>%
-      dplyr::select(dplyr::all_of(paste0("XY", k, "_star", sep = "")))
+      select(all_of(paste0("XY_", k, "_star", sep = "")))
     df_ccf_predictions <- ccf_predictions %>%
       dplyr::mutate(model = factor(.data$model, levels = paste0("k = ", k, sep = ""),
                             labels = paste0("XY", k, "_star_hat", sep = ""))) %>%

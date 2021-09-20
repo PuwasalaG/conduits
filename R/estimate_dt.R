@@ -42,7 +42,7 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
 
   DF_ccf_max <- DF_ccf_max %>%
     tibble::as_tibble() %>%
-    tidyr::drop_na(.data$`1`) %>%
+    # tidyr::drop_na(.data$`1`) %>%
     tidyr::pivot_longer(cols = -.data$Timestamp, names_to = "dt", values_to = "ccf") %>%
     dplyr::filter(.data$dt %in% seq(k_min, k_max)) %>%
     dplyr::group_by(.data$Timestamp) %>%
