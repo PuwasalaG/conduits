@@ -15,10 +15,10 @@
 #' this can take either "Gamma" or "lognormal".
 #' @param knots_mean  a vector specifying the dimension of the basis in the smooth term fitting for
 #' each predictor in the GAM for conditional mean of $x$. Each component of the vector should corresponds to each predictor specified in
-#' "z_numeric". Default fitting a $3$ dimentional thin plate regression spline.
+#' "z_numeric".
 #' @param knots_variance a vector specifying the dimension of the basis in the smooth term fitting for
 #' each predictor in the GAM for conditional variance of $x$. Each component of the vector should corresponds to each predictor specified in
-#' "z_numeric". Default fitting a $3$ dimentional thin plate regression spline.
+#' "z_numeric".
 #'
 #' @return an object of class "conditional_moments" with the following components
 #'  \item{data_conditional_moments}{The original tibble appended with the estimated
@@ -49,12 +49,14 @@ conditional_moments <- function(data, x, z_numeric,
   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
   names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), data))
 
+  # if mean knots are null replace with the default in s()
   if(is.null(knots_mean)){
-    knots_mean <- rep(3, length(names_z_numeric))
+    knots_mean <- rep(-1, length(names_z_numeric))
   }
 
+  # if variance knots are null replace with the default in s()
   if(is.null(knots_variance)){
-    knots_variance <- rep(3, length(names_z_numeric))
+    knots_variance <- rep(-1, length(names_z_numeric))
   }
 
   if(!rlang::is_empty(names_z_factors)){

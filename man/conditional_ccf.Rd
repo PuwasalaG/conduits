@@ -40,18 +40,17 @@ $1:9$}
 \item{knots_mean}{a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
 each predictor in the conditional mean models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
 $x$ and $y$. The components of each vector should correspond to each predictor specified in
-"z_numeric". By default function fits a 3 dimentional thin plate regression spline for each predictor.}
+"z_numeric".}
 
 \item{knots_variance}{a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
 each predictor in the conditional variance models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
 $x$ and $y$. The components of each vector should correspond to each predictor specified in
-"z_numeric". By default the function fits a 3 dimentional thin plate regression spline for each predictor.}
+"z_numeric".}
 
 \item{df_correlation}{a vector specifying the degrees of freedom to be considered for each numerical
 predictor when fitting additive models for conditional cross-correlations. Each component of the
 vector should corresponds to each predictor specified in "z_numeric". By default the function
-will fit a natural cubic spline with $3$ degrees of freedom. see \code{\link[splines]{ns}}
-consider $3$ degrees for each predictor.}
+will fit a natural cubic spline with $3$ degrees of freedom. see \code{\link[splines]{ns}}}
 }
 \value{
 an object of class "conditional_ccf" with the following components

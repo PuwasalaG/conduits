@@ -31,11 +31,11 @@ NULL for empty factors or use c() for multiple variables}
 
 \item{knots_mean}{a vector specifying the dimension of the basis in the smooth term fitting for
 each predictor in the GAM for conditional mean of $x$. Each component of the vector should corresponds to each predictor specified in
-"z_numeric". Default fitting a $3$ dimentional thin plate regression spline.}
+"z_numeric".}
 
 \item{knots_variance}{a vector specifying the dimension of the basis in the smooth term fitting for
 each predictor in the GAM for conditional variance of $x$. Each component of the vector should corresponds to each predictor specified in
-"z_numeric". Default fitting a $3$ dimentional thin plate regression spline.}
+"z_numeric".}
 }
 \value{
 an object of class "conditional_moments" with the following components

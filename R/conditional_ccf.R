@@ -18,17 +18,17 @@
 #' @param knots_mean a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
 #' each predictor in the conditional mean models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
 #' $x$ and $y$. The components of each vector should correspond to each predictor specified in
-#' "z_numeric". By default function fits a 3 dimentional thin plate regression spline for each predictor.
+#' "z_numeric".
 #' @param knots_variance a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
 #' each predictor in the conditional variance models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
 #' $x$ and $y$. The components of each vector should correspond to each predictor specified in
-#' "z_numeric". By default the function fits a 3 dimentional thin plate regression spline for each predictor.
+#' "z_numeric".
 
 #' @param df_correlation a vector specifying the degrees of freedom to be considered for each numerical
 #' predictor when fitting additive models for conditional cross-correlations. Each component of the
 #' vector should corresponds to each predictor specified in "z_numeric". By default the function
 #' will fit a natural cubic spline with $3$ degrees of freedom. see \code{\link[splines]{ns}}
-#' consider $3$ degrees for each predictor.
+#'
 #'
 #' @return an object of class "conditional_ccf" with the following components
 #'  \item{data_ccf}{The original tibble passed to the function appended with the estimated
@@ -66,14 +66,33 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
   p_numeric <- length(names_z_numeric)
   p <- length(names_z_numeric) + length(names_z_factors)
 
-  if(is.null(knots_mean)){
-    knots_mean = list(x = rep(3, p_numeric), y = rep(3, p_numeric))
+  # if knots for mean model is null replace them with the default k in
+  knots_mean_x <- knots_mean$x
+  knots_mean_y <- knots_mean$y
+
+  if(is.null(knots_mean_x)){
+    knots_mean_x = rep(-1, p_numeric)
   }
 
-  if(is.null(knots_variance)){
-    knots_variance = list(x = rep(3, p_numeric), y = rep(3, p_numeric))
+  if(is.null(knots_mean_y)){
+    knots_mean_y = rep(-1, p_numeric)
+  }
+  knots_mean <- list(x = knots_mean_x, y = knots_mean_y)
+
+  # if knots for variance model is null replace them with the default k in
+  knots_var_x <- knots_variance$x
+  knots_var_y <- knots_variance$y
+
+  if(is.null(knots_var_x)){
+    knots_var_x = rep(-1, p_numeric)
   }
 
+  if(is.null(knots_var_y)){
+    knots_var_y = rep(-1, p_numeric)
+  }
+  knots_variance <- list(x = knots_var_x, y = knots_var_y)
+
+  # if knots for correlation model is null replace them with 3 for each predictor
   if(is.null(df_correlation)){
     df_correlation = rep(3, p_numeric)
   }
