@@ -53,6 +53,12 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
   new_data <- new_data %>%
     dplyr::left_join(DF_ccf_max, by = "Timestamp")
 
+  # Add p value
+  pval <-  data_predict_ccf %>%
+    dplyr::select(.data$Timestamp, pvalue)
+  new_data <- new_data %>%
+    dplyr::left_join(pval, by = "Timestamp")
+
   return(structure(list(data_dt = new_data,
                         conditional_ccf_object = object,
                         k_min = k_min,

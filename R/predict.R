@@ -22,10 +22,20 @@ predict.conditional_ccf <- function(object, new_data, ...){
 
   data_predict_ccf <- matrix(0, ncol = length(k), nrow = nrow(new_data))
 
+  # For p value calculation
+  stdz_data_predict_ccf <- matrix(0, ncol = length(k), nrow = nrow(new_data))
+
   for (i in k) {
 
-    data_predict_ccf[,i] <- stats::predict.glm(ccf_gam_fit[[i]], newdata = new_data,
-                                               type = "response")
+    #data_predict_ccf[,i] <- stats::predict.glm(ccf_gam_fit[[i]], newdata = new_data,
+    #                                           type = "response")
+
+    est <- stats::predict.glm(ccf_gam_fit[[i]], newdata = new_data,
+                              type = "response", se.fit = TRUE)
+    data_predict_ccf[,i] <- est$fit
+
+    # For p value calculation
+    stdz_data_predict_ccf[,i]  <- est$fit/ est$se.fit
 
   }
 
@@ -37,6 +47,12 @@ predict.conditional_ccf <- function(object, new_data, ...){
 
   data_predict_ccf <- new_data %>%
     dplyr::left_join(data_predict_ccf, by = "Timestamp")
+
+  # P value calculation
+  row_max <- apply(stdz_data_predict_ccf, 1, max)
+  pval <- 1 - (pnorm(row_max))^k
+  data_predict_ccf <- data_predict_ccf %>%
+    dplyr::mutate(pvalue = pval)
 
   return(data_predict_ccf)
 
