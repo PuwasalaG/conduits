@@ -252,7 +252,7 @@ waq_down <- waq_down %>%
 NEON_PRIN_waq <- bind_rows(waq_up, waq_down) %>%
   rename("conductance" = specificConductance)
 
-usethis::use_data(NEON_PRIN_waq, overwrite = TRUE)
+# usethis::use_data(NEON_PRIN_waq, overwrite = TRUE)
 
 
 
