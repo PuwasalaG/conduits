@@ -599,7 +599,7 @@ autoplot.estimate_dt <- function(object,
 
     # calculating the residuals from conditional ccf models
     df_ccf_response <- data %>%
-      select(all_of(paste0("XY_", k, "_star", sep = "")))
+      dplyr::select(dplyr::all_of(paste0("XY_", k, "_star", sep = "")))
     df_ccf_predictions <- ccf_predictions %>%
       dplyr::mutate(model = factor(.data$model, levels = paste0("k = ", k, sep = ""),
                             labels = paste0("XY", k, "_star_hat", sep = ""))) %>%
@@ -700,8 +700,8 @@ autoplot.estimate_dt <- function(object,
 
           bs_df_ccf_max <- bs_df_ccf_max %>%
             dplyr::as_tibble() %>%
-            tidyr::gather(-.data$Timestamp, key = max_lag,
-                          value = ccf) %>%
+            tidyr::gather(-.data$Timestamp, key = .data$max_lag,
+                          value = .data$ccf) %>%
             dplyr::filter(.data$max_lag %in% seq(k_min, k_max)) %>%
             dplyr::group_by(.data$Timestamp) %>%
             dplyr::slice(which.max(.data$ccf)) %>%
@@ -776,7 +776,7 @@ autoplot.estimate_dt <- function(object,
     if(interval==FALSE){
       z_i <- names_z_numeric[i]
       plot_list[[i]] <- list_visualise_data[[i]]$data_vis_dt %>%
-        dplyr::filter(!is.na(max_lag)) %>%
+        dplyr::filter(!is.na(.data$max_lag)) %>%
         ggplot(aes(x = !!rlang::sym(z_i) , y = .data$max_lag)) +
         geom_point() +
         scale_y_discrete(limits = factor(k), breaks = seq(2, max(k), 4)) +

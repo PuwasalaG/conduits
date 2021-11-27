@@ -55,7 +55,7 @@ estimate_dt <- function(object, new_data, k_min = NULL, k_max = NULL){
 
   # Add p value
   pval <-  data_predict_ccf %>%
-    dplyr::select(.data$Timestamp, pvalue)
+    dplyr::select(.data$Timestamp, .data$pvalue)
   new_data <- new_data %>%
     dplyr::left_join(pval, by = "Timestamp")
 

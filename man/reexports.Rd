@@ -6,6 +6,7 @@
 \alias{\%>\%}
 \alias{.data}
 \alias{autoplot}
+\alias{:=}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -17,6 +18,6 @@ below to see their documentation.
 
   \item{magrittr}{\code{\link[magrittr:pipe]{\%>\%}}}
 
-  \item{rlang}{\code{\link[rlang:tidyeval-data]{.data}}}
+  \item{rlang}{\code{\link[rlang:tidyeval-data]{.data}}, \code{\link[rlang:nse-force]{:=}}}
 }}
 

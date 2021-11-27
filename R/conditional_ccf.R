@@ -128,7 +128,7 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
 
   for (i in k) {
     data_y <- data_y_cond_moments %>%
-      dplyr::mutate_at(vars({{y}}), dplyr::lead, n=i)
+      dplyr::mutate_at(dplyr::vars({{y}}), dplyr::lead, n=i)
 
     cond_moments_y_out[[i]] <- conditional_moments(data = data_y,
                                                    x = {{y}},
@@ -165,11 +165,11 @@ conditional_ccf <- function(data, x, y, z_numeric, z_factors,
   ##-- Computing x*y*_t+k --##
 
   DF_XY_star <- data_x_cond_moments %>%
-    select(Timestamp)
+    dplyr::select(.data$Timestamp)
 
   for (i in k) {
-    X_star <- data_x_cond_moments %>% pull(X_star)
-    Y_star <- data_y_k_cond_moments[[i]] %>% pull(Y_star)
+    X_star <- data_x_cond_moments %>% dplyr::pull(X_star)
+    Y_star <- data_y_k_cond_moments[[i]] %>% dplyr::pull(Y_star)
     DF_XY_star <- DF_XY_star %>%
       dplyr::mutate("XY_{i}_star" := X_star*Y_star)
 
