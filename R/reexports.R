@@ -10,6 +10,6 @@ rlang::.data
 #' @export
 ggplot2::autoplot
 
-#' @importFrom rlang %>%
+#' @importFrom rlang :=
 #' @export
 rlang::`:=`
