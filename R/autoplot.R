@@ -279,7 +279,8 @@ autoplot.conditional_ccf <- function(object,
 
 
   cond_moment_x <- object$data_visualise$conditional_moments$x
-  cond_moment_y <- object$data_visualise$conditional_moments$y
+  # Only showing the plots for conditional moments of y at lag 1
+  cond_moment_y <- object$data_visualise$conditional_moments$y$`k = 1`
 
   # names_x <- names(eval_select(enquo(x), object$data_ccf))
   names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), object$data_ccf))
