@@ -4,7 +4,7 @@
 \alias{autoplot.conditional_moments}
 \title{Visualising the models fitted for conditional moments}
 \usage{
-\method{autoplot}{conditional_moments}(object, type = c("mean", "variance"), title = TRUE, ...)
+\method{autoplot}{conditional_moments}(object, type = c("mean", "variance"), show_points = TRUE, ...)
 }
 \arguments{
 \item{object}{an object returned from \code{conditional_moments} function}
@@ -12,7 +12,7 @@
 \item{type}{the type of moment want to visualise. This can take one of
 "mean" or "variance"}
 
-\item{title}{if TRUE returning the plot with a title}
+\item{show_points}{Should partial residuals be shown around the fitted line?}
 
 \item{...}{ignored}
 }
