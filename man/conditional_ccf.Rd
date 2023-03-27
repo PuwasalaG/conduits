@@ -6,60 +6,44 @@
 \usage{
 conditional_ccf(
   data,
-  x,
-  y,
-  z_numeric,
-  z_factors,
-  family = c("Gamma", "lognormal"),
-  k = 1:9,
-  knots_mean = NULL,
-  knots_variance = NULL,
-  df_correlation = NULL
+  formula,
+  lag_max = 10,
+  fit_mean_x,
+  fit_var_x,
+  fit_mean_y,
+  fit_var_y,
+  df_correlation
 )
 }
 \arguments{
-\item{data}{a tibble containing all the time series which are uniquely identified by the
-corresponding Timestamp}
+\item{data}{a tibble containing all the time series including
+ystar*xstar which are uniquely identified by the corresponding
+Timestamp.}
 
-\item{x}{bared/unquoted name of the variable to be considered as $x_t$}
+\item{formula}{A GAM formula. The response variable should be in the format of
+I(x*y) ~ . See \code{\link[mgcv]{formula.gam}}.}
 
-\item{y}{bared/unquoted name of the variable to be considered as $y_t$}
+\item{lag_max}{Maximum lag at which to calculate the conditional ccf}
 
-\item{z_numeric}{numerical variable(s) use as predictors. Should be given as bared/unquoted names
-and use c() for multiple variables}
+\item{fit_mean_x}{Model object of class "conditional_moment" returned from
+\code{\link[conduits]{conditional_mean}} for series x}
 
-\item{z_factors}{factor variable(s) use as predictors. Should be given as bared/unquoted names.
-NULL for empty factors or use c() for multiple variables}
+\item{fit_var_x}{Model object of class "conditional_moment" returned from
+\code{\link[conduits]{conditional_var}} for series x}
 
-\item{family}{the family to be used in conditional variance model. Currently
-this can take either "Gamma" or "lognormal".}
+\item{fit_mean_y}{Model object of class "conditional_moment" returned from
+\code{\link[conduits]{conditional_mean}} for series y}
 
-\item{k}{a vector of lag values at which the cross-correlation needs to be computed. Default is
-$1:9$}
-
-\item{knots_mean}{a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
-each predictor in the conditional mean models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
-$x$ and $y$. The components of each vector should correspond to each predictor specified in
-"z_numeric".}
-
-\item{knots_variance}{a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
-each predictor in the conditional variance models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
-$x$ and $y$. The components of each vector should correspond to each predictor specified in
-"z_numeric".}
+\item{fit_var_y}{Model object of class "conditional_moment" returned from
+\code{\link[conduits]{conditional_var}} for series y}
 
 \item{df_correlation}{a vector specifying the degrees of freedom to be considered for each numerical
 predictor when fitting additive models for conditional cross-correlations. Each component of the
-vector should corresponds to each predictor specified in "z_numeric". By default the function
-will fit a natural cubic spline with $3$ degrees of freedom. see \code{\link[splines]{ns}}}
+vector should corresponds to the degrees of freedom each predictor.}
 }
 \value{
-an object of class "conditional_ccf" with the following components
-\item{data_ccf}{The original tibble passed to the function appended with the estimated
-conditional cross correlation at lags $k = 1,2,...$}
-\item{data_visualise}{a list containing the fitted models for conditional means, variance and
-cross-correlation at each lag. These data can be used for visualisation and diagnostics of each fitted model}
-\item{formula_gam}{formula passed to the \code{\link[stats]{glm}} to fit additive models for
-conditional cross-correlation}
+The function returns a list of objects of class
+"glm" as described in \code{\link[stats]{glm}}. the length og the list is equal to lag_max
 }
 \description{
 This function computes cross correlation between $x_t$ and $y_{t+k}$ at $k = 1,2,...$
@@ -67,17 +51,70 @@ conditional on a set of time series $z_t$
 }
 \details{
 { Suppose $x_t$ and $y_t$ are conditionally normalised with respect
-to $z_t$ using \code{conditional_moments}. Then we can estimate the conditional
-cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$
+to $z_t$ using \code{conditional_mean} and \code{conditional_var}. Then
+we can estimate the conditional cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$
 via generalised additive models (GAM). \code{conditional_ccf} uses natural splines implemented
 in \code{splines} package to estimate the conditional cross-correlations between two
-time series given a set of time series predictors. Users need not to
-normalise $x_t$ and $y_t$. The function \code{conditional_ccf} itself will
-normalise $x_t$ and $y_t$ using \code{conditional_moments}}
+time series given a set of time series predictors. Users first need  to
+normalise $x_t$ and $y_t$ at lag $k$ using \code{conditional_mean} and \code{conditional_var}}
+}
+\examples{
+
+old_ts <- NEON_PRIN_5min_cleaned \%>\%
+  dplyr::select(
+    Timestamp, site, turbidity, level,
+    conductance, temperature
+  ) \%>\%
+  tidyr::pivot_wider(
+    names_from = site,
+    values_from = turbidity:temperature
+  )
+
+fit_mean_y <- old_ts \%>\%
+  conditional_mean(turbidity_downstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_y <- old_ts \%>\%
+  conditional_var(
+    turbidity_downstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_y
+  )
+
+fit_mean_x <- old_ts \%>\%
+  conditional_mean(turbidity_upstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_x <- old_ts \%>\%
+  conditional_var(
+    turbidity_upstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_x
+  )
+
+fit_c_ccf <- old_ts \%>\%
+  tidyr::drop_na() \%>\%
+  conditional_ccf(
+    I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
+      level_upstream,
+      df = 5
+    ) +
+      splines::ns(temperature_upstream, df = 5),
+    lag_max = 10,
+    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    df_correlation = c(5, 5)
+  )
 }
 \seealso{
-\code{\link[stats]{glm}}, \code{\link[splines]{ns}}
-}
-\author{
-Puwasala Gamakumara
+\code{\link[stats]{glm}}
 }

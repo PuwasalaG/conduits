@@ -9,12 +9,14 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  eval = TRUE
 )
 ```
 
-# conduits (CONDitional UI for Time Series normalisation)
 
+# conduits (CONDitional UI for Time Series normalisation)
+ <img src="man/figures/logo.png" align="right" height="190"/>
 <!-- badges: start -->
 <!-- badges: end -->
 
@@ -44,32 +46,28 @@ Let us first prepare data as follows
 
 ```{r prepare_data}
 library(conduits)
-library(lubridate)
 library(tidyverse)
-
-data_z <- NEON_PRIN_5min_cleaned %>% 
-  filter(Timestamp >= ymd("2019-10-01") 
-         & Timestamp < ymd("2020-01-01"),
-         site == "upstream") %>%
-  select(Timestamp, level, conductance, temperature) %>% 
-  rename("level_up" = level,
-         "conductance_up" = conductance,
-         "temperature_up" = temperature)
-
-data_xy <- NEON_PRIN_5min_cleaned %>% 
-  filter(Timestamp >= ymd("2019-10-01") 
-         & Timestamp < ymd("2020-01-01")) %>% 
-  select(Timestamp, site, turbidity) %>% 
-  tidyr::spread(key = site, value = turbidity) %>% 
-  rename("turbidity_up" = upstream,
-         "turbidity_down" = downstream)
-
-data_normalisation <- data_xy %>% 
-  left_join(data_z, by = "Timestamp")
-
-head(data_normalisation)
 ```
 
+# Data
+
+`conduits` contains `NEON_PRIN_5min_cleaned`, a set of water-quality variables measured by in-situ sensors from Pringle Creek located in Wise County, Texas. This is one of the aquatic NEON field sites hosted by the US Forest Service. 
+
+This data contains water-quality variables such as turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from $2019-07-01$ to $2019-12-31$ at every 5 minutes. 
+
+In this example, we choose turbidity from upstream and downstream sites to calculate the cross-correlation while conditioning on the water level, temperature and conductance from the upstream location.
+
+Let us first prepare data as follows
+
+
+```{r}
+data <- NEON_PRIN_5min_cleaned %>%
+  dplyr::filter(site == "upstream") %>%
+  dplyr::select(Timestamp, turbidity, level,
+                conductance, temperature) %>%
+  tsibble::as_tsibble(index = Timestamp)
+head(data)
+```
 
 
 ### Conditional normalisation
@@ -77,21 +75,31 @@ head(data_normalisation)
 The following code shows how to use the `conditional_moments` function to normalise turbidity from upstream sites.
 
 ```{r conditional_moments}
+# Estimating conditional mean of the turbidity from the upstream site 
 
-cond_moments_x <- data_normalisation %>% 
-  conditional_moments(x = turbidity_up,
-                      z_numeric = c(level_up, temperature_up,
-                                    conductance_up),
-                      knots_mean = c(8,8,8),
-                      knots_variance = c(7,7,7))
-head(cond_moments_x$data_conditional_moments)
-```
+fit_mean <- data %>%
+  conditional_mean(
+    turbidity ~ s(level, k = 8) + s(conductance, k = 8) + s(temperature, k = 8))
 
-We can then visualise the fitted models for conditional means and variances by passing the `cond_moments_x` object to the `autoplot` method.
+summary(fit_mean)
+class(fit_mean)
 
-```{r vis_mean_models}
+# Estimating conditional variance of the turbidity from the upstream site 
 
-autoplot(cond_moments_x, type = "mean")
+fit_var <- data %>%
+  conditional_var(
+    turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
+    family = "Gamma",
+    fit_mean
+  )
+
+class(fit_var)
+summary(fit_var)
+
+# Normalize the series using conditional moments
+new_ts <- data %>%
+  dplyr::mutate(
+    ystar = normalize(., turbidity, fit_mean, fit_var))
 
 ```
 

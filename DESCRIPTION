@@ -1,39 +1,36 @@
 Package: conduits
 Title: Conditional UI for Time Series normalisation
-Version: 0.0.0.9000
-Authors@R: 
-    person(given = "Puwasala",
-           family = "Gamakumara",
-           role = c("aut", "cre"),
-           email = "puwasala.gamakumara@gmail.com")
+Version: 1.0.0.9000
+Authors@R: c( person("Puwasala", "Gamakumara", email = "puwasala.gamakumara@gmail.com", role= c("aut","cre")),
+    person("Priyanga Dilini", "Talagala", role= c("aut")),
+    person("Rob J.", "Hyndman", role= c("aut"))
+    )
 Description: Provide a user interface for conditionally normalising a timeseries.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
-Imports: 
-    tidyselect,
-    splines,
-    mgcv,
+RoxygenNote: 7.2.1
+Imports:
+    broom,
     dplyr,
-    grDevices,
-    visreg,
-    lubridate,
-    stats,
     magrittr,
-    rlang,
+    mgcv,
     purrr,
+    rlang,
+    scales,
+    splines,
+    stats,
     tibble,
     tidyr,
-    gridExtra,
-    ggplot2,
-    scales,
+    tsibble, 
     forecast,
-    modelr
+    plyr
 Depends: 
     R (>= 4.00)
-Suggests: 
+Suggests:
     knitr,
-    rmarkdown
+    mgcViz,
+    rmarkdown,
+    tidyverse
 VignetteBuilder: knitr

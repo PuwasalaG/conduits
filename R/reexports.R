@@ -6,9 +6,10 @@ magrittr::`%>%`
 #' @export
 rlang::.data
 
-#' @importFrom ggplot2 autoplot
+#' @importFrom broom augment
 #' @export
-ggplot2::autoplot
+broom::augment
+
 
 #' @importFrom rlang :=
 #' @export

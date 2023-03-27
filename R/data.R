@@ -22,7 +22,5 @@ NULL
 #' \item{\code{fDOM}}{fDOM}
 #' \item{\code{level}}{elevation of surface water}
 #' \item{\code{temperature}}{temperature in surface water}
-#'}
+#' }
 "NEON_PRIN_5min_cleaned"
-
-

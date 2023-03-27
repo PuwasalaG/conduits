@@ -3,299 +3,178 @@
 #' This function computes cross correlation between $x_t$ and $y_{t+k}$ at $k = 1,2,...$
 #' conditional on a set of time series $z_t$
 #'
-#' @param data a tibble containing all the time series which are uniquely identified by the
-#' corresponding Timestamp
-#' @param x bared/unquoted name of the variable to be considered as $x_t$
-#' @param y bared/unquoted name of the variable to be considered as $y_t$
-#' @param z_numeric numerical variable(s) use as predictors. Should be given as bared/unquoted names
-#' and use c() for multiple variables
-#' @param z_factors factor variable(s) use as predictors. Should be given as bared/unquoted names.
-#' NULL for empty factors or use c() for multiple variables
-#' @param family the family to be used in conditional variance model. Currently
-#' this can take either "Gamma" or "lognormal".
-#' @param k a vector of lag values at which the cross-correlation needs to be computed. Default is
-#' $1:9$
-#' @param knots_mean a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
-#' each predictor in the conditional mean models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
-#' $x$ and $y$. The components of each vector should correspond to each predictor specified in
-#' "z_numeric".
-#' @param knots_variance a named list of vectors specifiying the dimension of the basis of the smooth term fitting for
-#' each predictor in the conditional variance models for $x_t$ and $y_t$ (see \code{conditional_moments}). The vectors should be named as
-#' $x$ and $y$. The components of each vector should correspond to each predictor specified in
-#' "z_numeric".
-
+#' @param data a tibble containing all the time series including
+#' ystar*xstar which are uniquely identified by the corresponding
+#' Timestamp.
+#' @param formula A GAM formula. The response variable should be in the format of
+#' I(x*y) ~ . See \code{\link[mgcv]{formula.gam}}.
+#' @param lag_max Maximum lag at which to calculate the conditional ccf
+#' @param fit_mean_x Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_mean}} for series x
+#' @param fit_var_x Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_var}} for series x
+#' @param fit_mean_y Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_mean}} for series y
+#' @param fit_var_y Model object of class "conditional_moment" returned from
+#'  \code{\link[conduits]{conditional_var}} for series y
 #' @param df_correlation a vector specifying the degrees of freedom to be considered for each numerical
 #' predictor when fitting additive models for conditional cross-correlations. Each component of the
-#' vector should corresponds to each predictor specified in "z_numeric". By default the function
-#' will fit a natural cubic spline with $3$ degrees of freedom. see \code{\link[splines]{ns}}
-#'
-#'
-#' @return an object of class "conditional_ccf" with the following components
-#'  \item{data_ccf}{The original tibble passed to the function appended with the estimated
-#'  conditional cross correlation at lags $k = 1,2,...$}
-#'  \item{data_visualise}{a list containing the fitted models for conditional means, variance and
-#'  cross-correlation at each lag. These data can be used for visualisation and diagnostics of each fitted model}
-#'  \item{formula_gam}{formula passed to the \code{\link[stats]{glm}} to fit additive models for
-#'  conditional cross-correlation}
+#' vector should corresponds to the degrees of freedom each predictor.
+#' @return The function returns a list of objects of class
+#' "glm" as described in \code{\link[stats]{glm}}. the length og the list is equal to lag_max
 #'
 #' @details{ Suppose $x_t$ and $y_t$ are conditionally normalised with respect
-#' to $z_t$ using \code{conditional_moments}. Then we can estimate the conditional
-#' cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$
+#' to $z_t$ using \code{conditional_mean} and \code{conditional_var}. Then
+#' we can estimate the conditional cross-correlation between $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$
 #' via generalised additive models (GAM). \code{conditional_ccf} uses natural splines implemented
 #' in \code{splines} package to estimate the conditional cross-correlations between two
-#' time series given a set of time series predictors. Users need not to
-#' normalise $x_t$ and $y_t$. The function \code{conditional_ccf} itself will
-#' normalise $x_t$ and $y_t$ using \code{conditional_moments}}
+#' time series given a set of time series predictors. Users first need  to
+#' normalise $x_t$ and $y_t$ at lag $k$ using \code{conditional_mean} and \code{conditional_var}}
 #'
-#' @author Puwasala Gamakumara
-#'
-#' @seealso \code{\link[stats]{glm}}, \code{\link[splines]{ns}}
+#' @seealso \code{\link[stats]{glm}}
+#' @importFrom stats update glm as.formula
+#' @importFrom purrr map
 #'
 #' @export
-conditional_ccf <- function(data, x, y, z_numeric, z_factors,
-                            family = c("Gamma", "lognormal"),
-                            k = 1:9,
-                            knots_mean = NULL, knots_variance = NULL, df_correlation = NULL){
+#'
+#' @examples
+#'
+#' old_ts <- NEON_PRIN_5min_cleaned %>%
+#'   dplyr::select(
+#'     Timestamp, site, turbidity, level,
+#'     conductance, temperature
+#'   ) %>%
+#'   tidyr::pivot_wider(
+#'     names_from = site,
+#'     values_from = turbidity:temperature
+#'   )
+#'
+#' fit_mean_y <- old_ts %>%
+#'   conditional_mean(turbidity_downstream ~
+#'   s(level_upstream, k = 8) +
+#'     s(conductance_upstream, k = 8) +
+#'     s(temperature_upstream, k = 8))
+#'
+#' fit_var_y <- old_ts %>%
+#'   conditional_var(
+#'     turbidity_downstream ~
+#'     s(level_upstream, k = 7) +
+#'       s(conductance_upstream, k = 7) +
+#'       s(temperature_upstream, k = 7),
+#'     family = "Gamma",
+#'     fit_mean_y
+#'   )
+#'
+#' fit_mean_x <- old_ts %>%
+#'   conditional_mean(turbidity_upstream ~
+#'   s(level_upstream, k = 8) +
+#'     s(conductance_upstream, k = 8) +
+#'     s(temperature_upstream, k = 8))
+#'
+#' fit_var_x <- old_ts %>%
+#'   conditional_var(
+#'     turbidity_upstream ~
+#'     s(level_upstream, k = 7) +
+#'       s(conductance_upstream, k = 7) +
+#'       s(temperature_upstream, k = 7),
+#'     family = "Gamma",
+#'     fit_mean_x
+#'   )
+#'
+#' fit_c_ccf <- old_ts %>%
+#'   tidyr::drop_na() %>%
+#'   conditional_ccf(
+#'     I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
+#'       level_upstream,
+#'       df = 5
+#'     ) +
+#'       splines::ns(temperature_upstream, df = 5),
+#'     lag_max = 10,
+#'     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+#'     df_correlation = c(5, 5)
+#'   )
+conditional_ccf <- function(data, formula, lag_max = 10, fit_mean_x,
+                            fit_var_x, fit_mean_y, fit_var_y,
+                            df_correlation) {
+  vars <- all.vars(formula)
+  x_name <- vars[1]
+  y_name <- vars[2]
 
-  family <- match.arg(family)
-  names_x <- names(tidyselect::eval_select(dplyr::enquo(x), data))
-  names_y <- names(tidyselect::eval_select(dplyr::enquo(y), data))
-  names_z_numeric <- names(tidyselect::eval_select(dplyr::enquo(z_numeric), data))
-  names_z_factors <- names(tidyselect::eval_select(dplyr::enquo(z_factors), data))
-
-  p_numeric <- length(names_z_numeric)
-  p <- length(names_z_numeric) + length(names_z_factors)
-
-  # if knots for mean model is null replace them with the default k in
-  knots_mean_x <- knots_mean$x
-  knots_mean_y <- knots_mean$y
-
-  if(is.null(knots_mean_x)){
-    knots_mean_x = rep(-1, p_numeric)
-  }
-
-  if(is.null(knots_mean_y)){
-    knots_mean_y = rep(-1, p_numeric)
-  }
-  knots_mean <- list(x = knots_mean_x, y = knots_mean_y)
-
-  # if knots for variance model is null replace them with the default k in
-  knots_var_x <- knots_variance$x
-  knots_var_y <- knots_variance$y
-
-  if(is.null(knots_var_x)){
-    knots_var_x = rep(-1, p_numeric)
-  }
-
-  if(is.null(knots_var_y)){
-    knots_var_y = rep(-1, p_numeric)
-  }
-  knots_variance <- list(x = knots_var_x, y = knots_var_y)
-
-  # if knots for correlation model is null replace them with 3 for each predictor
-  if(is.null(df_correlation)){
-    df_correlation = rep(3, p_numeric)
-  }
-
-
-  data_NEW <- data %>%
-    dplyr::select(.data$Timestamp, {{x}}, {{y}}, {{z_numeric}}, {{z_factors}})
-
-
-  ##-- Computing conditional moments --##
-
-  data_x_cond_moments <- data_NEW %>%
-    dplyr::select(.data$Timestamp, {{x}}, {{z_numeric}}, {{z_factors}})
-  data_y_cond_moments <- data_NEW %>%
-    dplyr::select(.data$Timestamp, {{y}}, {{z_numeric}}, {{z_factors}})
-
-  #computing conditional moments for x
-
-  cond_moments_x <- conditional_moments(data = data_x_cond_moments,
-                                        x = {{x}},
-                                        family = family,
-                                        z_numeric = {{z_numeric}},
-                                        knots_mean = knots_mean$x,
-                                        knots_variance = knots_variance$x)
-
-  data_x_cond_moments <- cond_moments_x$data_conditional_moments %>%
-    dplyr::select(-{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
-
-  #computing conditional moments for y_t+k at each k
-
-  data_y_k_cond_moments <- list()
-  cond_moments_y_out <- list()
-
-  for (i in k) {
-    data_y <- data_y_cond_moments %>%
-      dplyr::mutate_at(dplyr::vars({{y}}), dplyr::lead, n=i)
-
-    cond_moments_y_out[[i]] <- conditional_moments(data = data_y,
-                                                   x = {{y}},
-                                                   family = family,
-                                                   z_numeric = {{z_numeric}},
-                                                   knots_mean = knots_mean$y,
-                                                   knots_variance = knots_variance$y)
-
-    data_y_k_cond_moments[[i]] <- cond_moments_y_out[[i]]$data_conditional_moments %>%
-      dplyr::select(-{{z_numeric}}, -!!rlang::enexpr(names_z_factors))
+  # Calculate x_t*y_{t+k}
+  new_ts <- data %>%
+    dplyr::mutate(xstar = normalize(
+      ., {{ x_name }}, fit_mean_x, fit_var_x
+    )) %>%
+    purrr::map_dfc(
+      1:lag_max, calc_xyk_star, ., {{ y_name }}, fit_mean_y,
+      fit_var_y
+    ) %>%
+    stats::setNames(paste("xystar_t", 1:lag_max, sep = "")) %>%
+    dplyr::bind_cols(data, .)
 
 
-  }
-
-
-  #computing the conditionally normalised X_t and Y_t+k, i.e., X* and Y*_t+k
-
-  E_X <- paste("E_", names_x, sep = "")
-  E_Y <- paste("E_", names_y, sep = "")
-  Var_X <- paste("Var_", names_x, sep = "")
-  Var_Y <- paste("Var_", names_y, sep = "")
-
-  #for x
-  data_x_cond_moments <- data_x_cond_moments %>%
-    dplyr::mutate(X_star = as.numeric(({{x}} - !!rlang::sym(E_X))/sqrt(!!rlang::sym(Var_X))))
-
-  #for y_t+k
-  for (i in k) {
-    data_y_k_cond_moments[[i]] <- data_y_k_cond_moments[[i]] %>%
-      dplyr::mutate(Y_star = as.numeric(({{y}} - !!rlang::sym(E_Y))/sqrt(!!rlang::sym(Var_Y))))
-
-  }
-
-  ##-- Computing x*y*_t+k --##
-
-  DF_XY_star <- data_x_cond_moments %>%
-    dplyr::select(.data$Timestamp)
-
-  for (i in k) {
-    X_star <- data_x_cond_moments %>% dplyr::pull(X_star)
-    Y_star <- data_y_k_cond_moments[[i]] %>% dplyr::pull(Y_star)
-    DF_XY_star <- DF_XY_star %>%
-      dplyr::mutate("XY_{i}_star" := X_star*Y_star)
-
-  }
-
-
-  data_estim_r_gam <- data_NEW %>%
-    dplyr::select(.data$Timestamp, {{z_numeric}},
-                  !!rlang::enexpr(names_z_factors)) %>%
-    dplyr::left_join(DF_XY_star, by = "Timestamp")
-
-
-  ##-- Computing cross-correlation at lags k --##
-
-  if(!rlang::is_empty(names_z_factors)){
-    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=",
-                                            df_correlation,  ")", sep = "", collapse = " + "),
-                        "+", paste(names_z_factors, collapse = " + "),
-                        sep = " ")
-  }else{
-    z_factors <- NULL
-    formula_XY <- paste("XY ~ - 1 +", paste("splines::ns(", names_z_numeric, ", df=",
-                                            df_correlation,  ")", sep = "",
-                                            collapse = " + "), sep = " ")
-  }
-
-
-  ccf_gam_fit <- list()
-  DF_ccf_max <- matrix(0, ncol = length(k), nrow = nrow(data_NEW))
+  xynames <- colnames(new_ts)[grepl("xystar", names(new_ts))]
   corrl <- corrlink()
-  names_XY <- paste("XY_", k, "_star", sep = "")
 
-  for (i in k) {
-
-    data_ccf_gam <- data_estim_r_gam %>%
-      dplyr::select(.data$Timestamp, names_XY[i], {{z_numeric}}, !!rlang::enexpr(names_z_factors)) %>%
-      dplyr::rename(XY = names_XY[i])
-
-
-    ccf_gam_fit[[i]] <- stats::glm(formula = stats::as.formula(formula_XY),
-                                   data = data_ccf_gam,
-                                   family = stats::gaussian(link = corrl),
-                                   start = rep(0,(sum(df_correlation))),
-                                   control = stats::glm.control(maxit = 400))
-
-    DF_ccf_max[,i] <- stats::predict.glm(ccf_gam_fit[[i]], newdata = data_NEW, type = "response")
-
+  # Fit GAM model for   x_t*y_{t+k}
+  fit_ccf_gam <- function(k) {
+    fk <- paste(xynames[k], "~.")
+    formula_k <- stats::update(formula, stats::as.formula(fk))
+    ccf_gam_fit_k <- stats::glm(
+      formula = formula_k,
+      data = new_ts,
+      family = stats::gaussian(link = corrl),
+      start = rep(0, (sum(df_correlation) + 1)),
+      control = stats::glm.control(maxit = 400)
+    )
+    return(ccf_gam_fit_k)
   }
 
-  names(ccf_gam_fit) <- paste("k = ", k, sep = "")
-  colnames(DF_ccf_max) <- paste("k = ", k, sep = "")
+  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
 
-  DF_ccf_max <- DF_ccf_max %>%
-    tibble::as_tibble() %>%
-    dplyr::mutate(Timestamp = data_NEW$Timestamp) %>%
-    dplyr::select(.data$Timestamp, tidyselect::everything())
-
-  DF_ccf_max <- data %>%
-    dplyr::left_join(DF_ccf_max, by = "Timestamp")
-
-  #naming cond_moments_y_out
-  names(cond_moments_y_out) <- paste("k = ", k, sep = "")
-
-  return(structure(list(data_ccf = DF_ccf_max,
-                        data_visualise = list(conditional_moments = list(x = cond_moments_x,
-                                                                         y = cond_moments_y_out),
-                                              conditional_ccf = list(ccf_gam_fit = ccf_gam_fit,
-                                                                     data_ccf_fit = data_estim_r_gam)),
-                        formula_gam = formula_XY,
-                        other = list(x = rlang::enexpr(x), y = rlang::enexpr(y),
-                                     z_numeric = rlang::enexpr(z_numeric),
-                                     z_factors = rlang::enexpr(z_factors),
-                                     k = k,
-                                     knots_mean = knots_mean,
-                                     knots_variance = knots_variance,
-                                     df_correlation = df_correlation)),
-                   class = "conditional_ccf"))
-
-}
-
-compute_XY_star <- function(data, k){
-
-  Time <- data$Timestamp
-  Y_leads <- purrr::map(k, ~dplyr::lead(data$Y_star, n = .x))
-  names(Y_leads) <- paste("Y_", k, sep = "")
-
-  Y_leads <- Y_leads %>%
-    tibble::as_tibble()
-
-  # Computing X_start*Y_star_leads
-
-  X_star <- data %>% dplyr::pull(X_star)
-
-  func_XY <- function(y, X_star){
-    y*X_star
-  }
-
-  Y_leads_new <- Y_leads %>%
-    dplyr::mutate_all(~ func_XY(., X_star = X_star)) %>%
-    dplyr::mutate(Timestamp = Time)
-
-  names_XY <- paste("XY", k, "_star", sep = "")
-  colnames(Y_leads_new) <- c(names_XY, "Timestamp")
-
-  # Joining X*Y* and filtering for the complete cases
-
-  data_estim_r_gam <- list(data, Y_leads_new) %>%
-    purrr::reduce(dplyr::left_join, by = "Timestamp")
-
-  return(data_estim_r_gam)
-
+  ccf_gam_fit$data <- new_ts
+  ccf_gam_fit$lag_max <- lag_max
+  class(ccf_gam_fit) <- c("conditional_ccf")
+  return(ccf_gam_fit)
 }
 
 corrlink <- function() {
   ## link
-  linkfun <- function(mu) {log((1+mu)/(1-mu))}
+  linkfun <- function(mu) {
+    log((1 + mu) / (1 - mu))
+  }
   ## inverse link
-  linkinv <- function(eta) {(exp(eta) - 1)/(exp(eta) + 1)}
+  linkinv <- function(eta) {
+    (exp(eta) - 1) / (exp(eta) + 1)
+  }
   ## derivative of invlink wrt eta
-  mu.eta <- function(eta) { 2*exp(eta)/(exp(eta) + 1)^2 }
+  mu.eta <- function(eta) {
+    2 * exp(eta) / (exp(eta) + 1)^2
+  }
   valideta <- function(eta) TRUE
   link <- "corrlink"
-  structure(list(linkfun = linkfun,
-                 linkinv = linkinv,
-                 mu.eta = mu.eta,
-                 valideta = valideta,
-                 name = link),
-            class = "link-glm")
+  structure(list(
+    linkfun = linkfun,
+    linkinv = linkinv,
+    mu.eta = mu.eta,
+    valideta = valideta,
+    name = link
+  ),
+  class = "link-glm"
+  )
+}
+
+
+## Calculate x_t*y_{t+k}
+calc_xyk_star <- function(k, data, y, fit_mean_y, fit_var_y) {
+  old_ts_lead <- data %>%
+    dplyr::mutate_at({{ y }},
+      dplyr::lead,
+      n = k
+    ) %>%
+    normalize(
+      ., {{ y }},
+      fit_mean_y,
+      fit_var_y
+    ) * data$xstar
 }
