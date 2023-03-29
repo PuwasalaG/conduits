@@ -32,5 +32,6 @@ Suggests:
     knitr,
     mgcViz,
     rmarkdown,
-    tidyverse
+    tidyverse,
+    patchwork
 VignetteBuilder: knitr

@@ -8,6 +8,8 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
+  message = FALSE,
+  warning = FALSE,
   fig.path = "man/figures/README-",
   out.width = "100%",
   eval = TRUE
@@ -72,7 +74,7 @@ head(data)
 
 ### Conditional normalisation
 
-The following code shows how to use the `conditional_moments` function to normalise turbidity from upstream sites.
+The following code shows how to normalise downstream turbidity from upstream sites.
 
 ```{r conditional_moments}
 # Estimating conditional mean of the turbidity from the upstream site 
@@ -83,6 +85,25 @@ fit_mean <- data %>%
 
 summary(fit_mean)
 class(fit_mean)
+
+# Visualizing the fitted smooth functions  in the conditional mean model for turbidity  downstream with the predictors, water level  and temperature from upstream sensor.
+
+# using plotting functions in mgcViz package
+library(mgcViz)
+viz_mean <- mgcViz::getViz(fit_mean)
+p <- plot(viz_mean, allTerms = T) +
+  l_points(size = 1, shape = 16, color = "gray") +
+  l_fitLine(linetype = 1, color = "#0099FF") +
+  l_ciLine(linetype = 3) +
+  l_ciBar() +
+  l_rug() +
+  theme_grey()
+
+p$plots[[1]] <- p$plots[[1]] 
+p$plots[[2]] <- p$plots[[2]] 
+print(p, pages = 1)
+
+
 
 # Estimating conditional variance of the turbidity from the upstream site 
 
@@ -104,6 +125,100 @@ new_ts <- data %>%
 ```
 
 
+### Conditional cross-correlation
+
+The following code shows how to compute conditional cross-correlation between upstream and downstream at given lags
+
+```{r}
+old_ts <- NEON_PRIN_5min_cleaned %>%
+  dplyr::select(
+    Timestamp, site, turbidity, level,
+    conductance, temperature
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = site,
+    values_from = turbidity:temperature
+  )
+
+fit_mean_y <- old_ts %>%
+  conditional_mean(turbidity_downstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_y <- old_ts %>%
+  conditional_var(
+    turbidity_downstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_y
+  )
+
+fit_mean_x <- old_ts %>%
+  conditional_mean(turbidity_upstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_x <- old_ts %>%
+  conditional_var(
+    turbidity_upstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_x
+  )
+
+fit_c_ccf <- old_ts %>%
+  tidyr::drop_na() %>%
+  conditional_ccf(
+    I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
+      level_upstream,
+      df = 5
+    ) +
+      splines::ns(temperature_upstream, df = 5),
+    lag_max = 10,
+    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    df_correlation = c(5, 5)
+  )
 
 
+```
 
+
+Visualizing the fitted smooth functions for conditional cross-correlation between turbidity-upstream  and turbidity-downstream at lag 1 with the predictors  water level and temperature from upstream sensor.
+
+
+Compute lag time between upstream and downstream sensors with the predictors, water level and temperature from  upstream sensor
+
+```{r}
+Estimate_dt <- fit_c_ccf %>% conduits::estimate_dt()
+
+```
+
+
+Visualize the estimated lag time between upstream and downstream sensors
+
+```{r}
+p <- Estimate_dt %>%
+  select(Timestamp, turbidity_downstream, turbidity_upstream,
+         dt, max_ccf) %>%
+  drop_na() %>%
+  pivot_longer(cols = turbidity_downstream:max_ccf) %>%
+  mutate(name = factor(
+    name, 
+    levels = c("turbidity_downstream", "turbidity_upstream" ,
+               "dt", "max_ccf"),
+    labels = c("(a) Turbidity-downstream", "(b) Turbidity-upstream" ,
+               "(c) Lag time (dt)", "(d) Maximum conditional cross-correlation"))) %>%
+  tsibble::as_tsibble(index = Timestamp, key = name) %>%
+  fabletools::autoplot(colour="black") +
+  facet_wrap(~name, nrow = 4, scale ="free_y") +
+  theme(legend.position = "none")
+
+print(p)
+
+```

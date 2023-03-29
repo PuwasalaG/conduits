@@ -35,11 +35,7 @@ one of the aquatic NEON field sites hosted by the US Forest Service.
 This data contains water-quality variables such as, turbidity, specific
 conductance, dissolved oxygen, pH and fDOM along with surface elevation
 and surface temperature from two sites located about 200m apart. Data
-are available from
-![2019-07-01](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-07-01 "2019-07-01")
-to
-![2019-12-31](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-12-31 "2019-12-31")
-at every 5 mintues.
+are available from $2019-07-01$ to $2019-12-31$ at every 5 mintues.
 
 In this example we choose turbidity from upstream and downstream sites
 to calculate the cross-correlation while conditioning on level,
@@ -50,14 +46,6 @@ Let us first prepare data as follows
 ``` r
 library(conduits)
 library(tidyverse)
-#> ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
-#> ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-#> ✓ tibble  3.1.6     ✓ dplyr   1.0.8
-#> ✓ tidyr   1.2.0     ✓ stringr 1.4.0
-#> ✓ readr   2.1.2     ✓ forcats 0.5.1
-#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-#> x dplyr::filter() masks stats::filter()
-#> x dplyr::lag()    masks stats::lag()
 ```
 
 # Data
@@ -70,11 +58,7 @@ US Forest Service.
 This data contains water-quality variables such as turbidity, specific
 conductance, dissolved oxygen, pH and fDOM along with surface elevation
 and surface temperature from two sites located about 200m apart. Data
-are available from
-![2019-07-01](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-07-01 "2019-07-01")
-to
-![2019-12-31](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;2019-12-31 "2019-12-31")
-at every 5 minutes.
+are available from $2019-07-01$ to $2019-12-31$ at every 5 minutes.
 
 In this example, we choose turbidity from upstream and downstream sites
 to calculate the cross-correlation while conditioning on the water
@@ -102,8 +86,8 @@ head(data)
 
 ### Conditional normalisation
 
-The following code shows how to use the `conditional_moments` function
-to normalise turbidity from upstream sites.
+The following code shows how to normalise downstream turbidity from
+upstream sites.
 
 ``` r
 # Estimating conditional mean of the turbidity from the upstream site 
@@ -140,6 +124,29 @@ summary(fit_mean)
 class(fit_mean)
 #> [1] "conditional_moment" "gam"                "glm"               
 #> [4] "lm"
+
+# Visualizing the fitted smooth functions  in the conditional mean model for turbidity  downstream with the predictors, water level  and temperature from upstream sensor.
+
+# using plotting functions in mgcViz package
+library(mgcViz)
+viz_mean <- mgcViz::getViz(fit_mean)
+p <- plot(viz_mean, allTerms = T) +
+  l_points(size = 1, shape = 16, color = "gray") +
+  l_fitLine(linetype = 1, color = "#0099FF") +
+  l_ciLine(linetype = 3) +
+  l_ciBar() +
+  l_rug() +
+  theme_grey()
+
+p$plots[[1]] <- p$plots[[1]] 
+p$plots[[2]] <- p$plots[[2]] 
+print(p, pages = 1)
+```
+
+<img src="man/figures/README-conditional_moments-1.png" width="100%" />
+
+``` r
+
 
 # Estimating conditional variance of the turbidity from the upstream site 
 
@@ -184,3 +191,101 @@ new_ts <- data %>%
   dplyr::mutate(
     ystar = normalize(., turbidity, fit_mean, fit_var))
 ```
+
+### Conditional cross-correlation
+
+The following code shows how to compute conditional cross-correlation
+between upstream and downstream at given lags
+
+``` r
+old_ts <- NEON_PRIN_5min_cleaned %>%
+  dplyr::select(
+    Timestamp, site, turbidity, level,
+    conductance, temperature
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = site,
+    values_from = turbidity:temperature
+  )
+
+fit_mean_y <- old_ts %>%
+  conditional_mean(turbidity_downstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_y <- old_ts %>%
+  conditional_var(
+    turbidity_downstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_y
+  )
+
+fit_mean_x <- old_ts %>%
+  conditional_mean(turbidity_upstream ~
+  s(level_upstream, k = 8) +
+    s(conductance_upstream, k = 8) +
+    s(temperature_upstream, k = 8))
+
+fit_var_x <- old_ts %>%
+  conditional_var(
+    turbidity_upstream ~
+    s(level_upstream, k = 7) +
+      s(conductance_upstream, k = 7) +
+      s(temperature_upstream, k = 7),
+    family = "Gamma",
+    fit_mean_x
+  )
+
+fit_c_ccf <- old_ts %>%
+  tidyr::drop_na() %>%
+  conditional_ccf(
+    I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
+      level_upstream,
+      df = 5
+    ) +
+      splines::ns(temperature_upstream, df = 5),
+    lag_max = 10,
+    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    df_correlation = c(5, 5)
+  )
+```
+
+Visualizing the fitted smooth functions for conditional
+cross-correlation between turbidity-upstream and turbidity-downstream at
+lag 1 with the predictors water level and temperature from upstream
+sensor.
+
+Compute lag time between upstream and downstream sensors with the
+predictors, water level and temperature from upstream sensor
+
+``` r
+Estimate_dt <- fit_c_ccf %>% conduits::estimate_dt()
+```
+
+Visualize the estimated lag time between upstream and downstream sensors
+
+``` r
+p <- Estimate_dt %>%
+  select(Timestamp, turbidity_downstream, turbidity_upstream,
+         dt, max_ccf) %>%
+  drop_na() %>%
+  pivot_longer(cols = turbidity_downstream:max_ccf) %>%
+  mutate(name = factor(
+    name, 
+    levels = c("turbidity_downstream", "turbidity_upstream" ,
+               "dt", "max_ccf"),
+    labels = c("(a) Turbidity-downstream", "(b) Turbidity-upstream" ,
+               "(c) Lag time (dt)", "(d) Maximum conditional cross-correlation"))) %>%
+  tsibble::as_tsibble(index = Timestamp, key = name) %>%
+  fabletools::autoplot(colour="black") +
+  facet_wrap(~name, nrow = 4, scale ="free_y") +
+  theme(legend.position = "none")
+
+print(p)
+```
+
+<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
