@@ -16,7 +16,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 # conduits (CONDitional UI for Time Series normalisation)
  <img src="man/figures/logo.png" align="right" height="190"/>
 <!-- badges: start -->
@@ -40,7 +39,7 @@ This is a basic example which shows you how to use functions in `conduits`:
 
 `conduits` contains a set of water-quality variables measured by in-situ sensors from the Pringle Creek located in Wise County, Texas. This is one of the aquatic NEON field sites hosted by the US Forest Service. 
 
-This data contains water-quality variables such as, turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from $2019-07-01$ to $2019-12-31$ at every 5 mintues. 
+This data contains water-quality variables such as, turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from 2019-07-01 to 2019-12-31 at every 5 mintues. 
 
 In this example we choose turbidity from upstream and downstream sites to calculate the cross-correlation while conditioning on level, temperature and conductance from the upstream location.  
 
@@ -48,177 +47,169 @@ Let us first prepare data as follows
 
 ```{r prepare_data}
 library(conduits)
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(mgcViz)
 ```
 
 # Data
 
 `conduits` contains `NEON_PRIN_5min_cleaned`, a set of water-quality variables measured by in-situ sensors from Pringle Creek located in Wise County, Texas. This is one of the aquatic NEON field sites hosted by the US Forest Service. 
 
-This data contains water-quality variables such as turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from $2019-07-01$ to $2019-12-31$ at every 5 minutes. 
+This data contains water-quality variables such as turbidity, specific conductance, dissolved oxygen, pH and fDOM along with surface elevation and surface temperature from two sites located about 200m apart. Data are available from 2019-07-01 to 2019-12-31 at every 5 minutes. 
 
 In this example, we choose turbidity from upstream and downstream sites to calculate the cross-correlation while conditioning on the water level, temperature and conductance from the upstream location.
 
 Let us first prepare data as follows
 
-
 ```{r}
-data <- NEON_PRIN_5min_cleaned %>%
-  dplyr::filter(site == "upstream") %>%
-  dplyr::select(Timestamp, turbidity, level,
-                conductance, temperature) %>%
-  tsibble::as_tsibble(index = Timestamp)
+data <- NEON_PRIN_5min_cleaned |>
+  filter(site == "upstream") |>
+  select(
+    Timestamp, turbidity, level,
+    conductance, temperature
+  ) 
 head(data)
 ```
 
-
 ### Conditional normalisation
 
-The following code shows how to normalise downstream turbidity from upstream sites.
+The following code shows how to normalise turbidity from a specific site.
 
 ```{r conditional_moments}
-# Estimating conditional mean of the turbidity from the upstream site 
-
-fit_mean <- data %>%
+# Estimating conditional mean of the turbidity from the site given other measurements
+fit_mean <- data |>
   conditional_mean(
-    turbidity ~ s(level, k = 8) + s(conductance, k = 8) + s(temperature, k = 8))
-
+    turbidity ~ s(level, k = 8) + s(conductance, k = 8) + s(temperature, k = 8)
+  )
 summary(fit_mean)
-class(fit_mean)
 
-# Visualizing the fitted smooth functions  in the conditional mean model for turbidity  downstream with the predictors, water level  and temperature from upstream sensor.
-
-# using plotting functions in mgcViz package
-library(mgcViz)
-viz_mean <- mgcViz::getViz(fit_mean)
-p <- plot(viz_mean, allTerms = T) +
+# Visualizing the fitted smooth functions in the conditional mean model
+viz_mean <- getViz(fit_mean)
+p <- plot(viz_mean, allTerms = TRUE) +
   l_points(size = 1, shape = 16, color = "gray") +
   l_fitLine(linetype = 1, color = "#0099FF") +
   l_ciLine(linetype = 3) +
   l_ciBar() +
   l_rug() +
   theme_grey()
+print(p, pages=1)
 
-p$plots[[1]] <- p$plots[[1]] 
-p$plots[[2]] <- p$plots[[2]] 
-print(p, pages = 1)
-
-
-
-# Estimating conditional variance of the turbidity from the upstream site 
-
-fit_var <- data %>%
+# Estimating conditional variance of the turbidity from the site given other measurements
+fit_var <- data |>
   conditional_var(
     turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
     family = "Gamma",
-    fit_mean
+    fit_mean = fit_mean
   )
-
-class(fit_var)
 summary(fit_var)
 
 # Normalize the series using conditional moments
-new_ts <- data %>%
-  dplyr::mutate(
-    ystar = normalize(., turbidity, fit_mean, fit_var))
+new_ts <- data |>
+  transmute(
+    Timestamp = Timestamp,
+    Normalized = normalize(data, turbidity, fit_mean, fit_var),
+    Original = turbidity
+  )
 
+# Plot both the normalized and original series
+new_ts |> 
+  pivot_longer(-Timestamp, names_to = "variable", values_to = "Turbidity") |> 
+  mutate(variable = factor(variable, levels = c("Original", "Normalized"))) |> 
+  ggplot(aes(x=Timestamp, y=Turbidity)) +
+  facet_grid(variable ~ ., scales = "free_y") +
+  geom_line()
 ```
-
 
 ### Conditional cross-correlation
 
-The following code shows how to compute conditional cross-correlation between upstream and downstream at given lags
+The following code shows how to compute conditional cross-correlation between upstream and downstream observations at given lags.
 
 ```{r}
-old_ts <- NEON_PRIN_5min_cleaned %>%
-  dplyr::select(
+old_ts <- NEON_PRIN_5min_cleaned |>
+  select(
     Timestamp, site, turbidity, level,
     conductance, temperature
-  ) %>%
-  tidyr::pivot_wider(
+  ) |>
+  pivot_wider(
     names_from = site,
     values_from = turbidity:temperature
   )
-
-fit_mean_y <- old_ts %>%
+fit_mean_y <- old_ts |>
   conditional_mean(turbidity_downstream ~
-  s(level_upstream, k = 8) +
+    s(level_upstream, k = 8) +
     s(conductance_upstream, k = 8) +
-    s(temperature_upstream, k = 8))
-
-fit_var_y <- old_ts %>%
+    s(temperature_upstream, k = 8)
+  )
+fit_var_y <- old_ts |>
   conditional_var(
     turbidity_downstream ~
-    s(level_upstream, k = 7) +
+      s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean_y
+    fit_mean = fit_mean_y
   )
-
-fit_mean_x <- old_ts %>%
+fit_mean_x <- old_ts |>
   conditional_mean(turbidity_upstream ~
-  s(level_upstream, k = 8) +
+    s(level_upstream, k = 8) +
     s(conductance_upstream, k = 8) +
-    s(temperature_upstream, k = 8))
-
-fit_var_x <- old_ts %>%
+    s(temperature_upstream, k = 8)
+  )
+fit_var_x <- old_ts |>
   conditional_var(
     turbidity_upstream ~
-    s(level_upstream, k = 7) +
+      s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean_x
+    fit_mean = fit_mean_x
   )
-
-fit_c_ccf <- old_ts %>%
-  tidyr::drop_na() %>%
+fit_c_ccf <- old_ts |>
+  drop_na() |>
   conditional_ccf(
-    I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
-      level_upstream,
-      df = 5
-    ) +
+    I(turbidity_upstream * turbidity_downstream) ~ 
+      splines::ns(level_upstream, df = 5) +
       splines::ns(temperature_upstream, df = 5),
     lag_max = 10,
-    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    fit_mean_x = fit_mean_x, fit_var_x = fit_var_x, 
+    fit_mean_y = fit_mean_y, fit_var_y = fit_var_y,
     df_correlation = c(5, 5)
   )
-
-
 ```
 
-
 Visualizing the fitted smooth functions for conditional cross-correlation between turbidity-upstream  and turbidity-downstream at lag 1 with the predictors  water level and temperature from upstream sensor.
-
 
 Compute lag time between upstream and downstream sensors with the predictors, water level and temperature from  upstream sensor
 
 ```{r}
-Estimate_dt <- fit_c_ccf %>% conduits::estimate_dt()
-
+Estimate_dt <- fit_c_ccf |> estimate_dt()
 ```
-
 
 Visualize the estimated lag time between upstream and downstream sensors
 
 ```{r}
-p <- Estimate_dt %>%
-  select(Timestamp, turbidity_downstream, turbidity_upstream,
-         dt, max_ccf) %>%
-  drop_na() %>%
-  pivot_longer(cols = turbidity_downstream:max_ccf) %>%
+Estimate_dt |>
+  select(
+    Timestamp, turbidity_downstream, turbidity_upstream,
+    dt, max_ccf
+  ) |>
+  drop_na() |>
+  pivot_longer(cols = turbidity_downstream:max_ccf) |>
   mutate(name = factor(
-    name, 
-    levels = c("turbidity_downstream", "turbidity_upstream" ,
-               "dt", "max_ccf"),
-    labels = c("(a) Turbidity-downstream", "(b) Turbidity-upstream" ,
-               "(c) Lag time (dt)", "(d) Maximum conditional cross-correlation"))) %>%
-  tsibble::as_tsibble(index = Timestamp, key = name) %>%
-  fabletools::autoplot(colour="black") +
-  facet_wrap(~name, nrow = 4, scale ="free_y") +
+    name,
+    levels = c(
+      "turbidity_downstream", "turbidity_upstream",
+      "dt", "max_ccf"
+    ),
+    labels = c(
+      "(a) Turbidity-downstream", "(b) Turbidity-upstream",
+      "(c) Lag time (dt)", "(d) Maximum conditional cross-correlation"
+    )
+  )) |>
+  ggplot(aes(x = Timestamp, y = value)) +
+    geom_line() +
+  facet_wrap(~name, nrow = 4, scale = "free_y") +
   theme(legend.position = "none")
-
-print(p)
-
 ```
