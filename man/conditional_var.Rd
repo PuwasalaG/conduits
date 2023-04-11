@@ -37,20 +37,19 @@ in \code{mgcv} package to estimate the conditional variance
 of a time series given a set of time series predictors.}
 }
 \examples{
-
-data <- NEON_PRIN_5min_cleaned \%>\%
-  dplyr::filter(site == "upstream") \%>\%
+data <- NEON_PRIN_5min_cleaned |>
+  dplyr::filter(site == "upstream") |>
   dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 
-fit_mean <- data \%>\%
+fit_mean <- data |>
   conditional_mean(turbidity ~ s(level, k = 8) +
     s(conductance, k = 8) + s(temperature, k = 8))
 \dontrun{
-fit_var <- data \%>\%
+fit_var <- data |>
   conditional_var(
     turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
     family = "Gamma",
-    fit_mean
+    fit_mean = fit_mean
   )
 }
 }

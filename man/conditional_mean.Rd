@@ -33,12 +33,11 @@ the conditional means of a time series given a set of
 time series predictors.}
 }
 \examples{
-
-data <- NEON_PRIN_5min_cleaned \%>\%
-  dplyr::filter(site == "upstream") \%>\%
+data <- NEON_PRIN_5min_cleaned |>
+  dplyr::filter(site == "upstream") |>
   dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 
-fit_mean <- data \%>\%
+fit_mean <- data |>
   conditional_mean(turbidity ~ s(level, k = 8) +
     s(conductance, k = 8) + s(temperature, k = 8))
 }

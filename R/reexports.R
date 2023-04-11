@@ -1,7 +1,3 @@
-#' @importFrom magrittr %>%
-#' @export
-magrittr::`%>%`
-
 #' @importFrom rlang .data
 #' @export
 rlang::.data
@@ -9,7 +5,6 @@ rlang::.data
 #' @importFrom broom augment
 #' @export
 broom::augment
-
 
 #' @importFrom rlang :=
 #' @export

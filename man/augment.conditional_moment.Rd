@@ -13,7 +13,7 @@ with information to append to observations.}
 
 \item{level}{Confidence level. Default is set to 0.95.}
 
-\item{...}{Addition arguments to augment method.}
+\item{...}{Additional arguments, not currently used}
 }
 \value{
 A \code{\link[tibble]{tibble}} with information
@@ -24,15 +24,15 @@ This function produces partial residuals for each predictor,
 and the estimated conditional means, standard error and confidence limits.
 }
 \examples{
-data <- NEON_PRIN_5min_cleaned \%>\%
-  dplyr::filter(site == "upstream") \%>\%
+data <- NEON_PRIN_5min_cleaned |>
+  dplyr::filter(site == "upstream") |>
   dplyr::select(Timestamp, turbidity, level, conductance, temperature)
 
-fit_mean <- data \%>\%
+fit_mean <- data |>
   conditional_mean(turbidity ~ s(level, k = 8) +
     s(conductance, k = 8) + s(temperature, k = 8))
 
-data_inf <- fit_mean \%>\% augment()
+data_inf <- fit_mean |> augment()
 }
 \seealso{
 \code{\link[mgcv]{gam}}

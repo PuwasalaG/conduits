@@ -3,7 +3,6 @@
 \docType{import}
 \name{reexports}
 \alias{reexports}
-\alias{\%>\%}
 \alias{.data}
 \alias{augment}
 \alias{:=}
@@ -16,8 +15,6 @@ below to see their documentation.
 \describe{
   \item{broom}{\code{\link[broom:reexports]{augment}}}
 
-  \item{magrittr}{\code{\link[magrittr:pipe]{\%>\%}}}
-
-  \item{rlang}{\code{\link[rlang:dyn-dots]{:=}}, \code{\link[rlang:dot-data]{.data}}}
+  \item{rlang}{\code{\link[rlang:dot-data]{.data}}, \code{\link[rlang:dyn-dots]{:=}}}
 }}
 

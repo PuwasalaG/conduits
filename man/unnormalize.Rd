@@ -26,38 +26,39 @@ A \code{\link[tsibble]{tsibble}} with the conditional normliased series
 This function produces  an unnormalized series using conditional moments.
 }
 \examples{
-data <- NEON_PRIN_5min_cleaned \%>\%
-  dplyr::filter(site == "upstream") \%>\%
-  dplyr::select(Timestamp, turbidity, level, conductance, temperature) \%>\%
+data <- NEON_PRIN_5min_cleaned |>
+  dplyr::filter(site == "upstream") |>
+  dplyr::select(Timestamp, turbidity, level, conductance, temperature) |>
   tsibble::as_tsibble(index = Timestamp)
 
-fit_mean <- data \%>\%
+fit_mean <- data |>
   conditional_mean(turbidity ~ s(level, k = 8) +
     s(conductance, k = 8) + s(temperature, k = 8))
 
-fit_var <- data \%>\%
+fit_var <- data |>
   conditional_var(
     turbidity ~ s(level, k = 7) + s(conductance, k = 7) + s(temperature, k = 7),
     family = "Gamma",
-    fit_mean
+    fit_mean = fit_mean
   )
 
-new_ts <- data \%>\%
- dplyr::mutate(
- ystar = normalize(., turbidity, fit_mean, fit_var))
+new_ts <- data |>
+  dplyr::mutate(ystar = normalize(data, turbidity, fit_mean, fit_var))
 
 # For demonstrative purposes, declare three data points
 # as missing values.
-new_ts[3:5,6] <- NA
+new_ts[3:5, 6] <- NA
 
 \dontrun{
-impute_ts <- new_ts \%>\%
-  fabletools::model(fable::ARIMA(ystar)) \%>\%
-  fabletools::interpolate(new_ts) \%>\%
-  dplyr::rename(y_star_impt = ystar) \%>\%
-  dplyr::full_join(new_ts, by = "Timestamp") \%>\%
-  dplyr::mutate(
-  y = unnormalize(., y_star_impt, fit_mean, fit_var))
-  }
+library(fable)
+library(dplyr)
+impute_ts <- new_ts |>
+  model(ARIMA(ystar)) |>
+  interpolate(new_ts) |>
+  rename(y_star_impt = ystar) |>
+  full_join(new_ts, by = "Timestamp")
+impute_ts <- impute_ts
+  mutate(y = unnormalize(impute_ts, y_star_impt, fit_mean, fit_var))
+}
 
 }

@@ -10,7 +10,7 @@
 \item{x}{Model object of class "conditional_acf" returned from
 \code{\link[conduits]{conditional_acf}} with information to append to observations.}
 
-\item{...}{Addition arguments to augment method.}
+\item{...}{Additional arguments, not currently used.}
 }
 \value{
 A \code{\link[tibble]{tibble}} with information
@@ -21,43 +21,39 @@ This function produces estimated conditional autocorrelation between
 $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
 }
 \examples{
-
-
-old_ts <- NEON_PRIN_5min_cleaned \%>\%
+old_ts <- NEON_PRIN_5min_cleaned |>
   dplyr::select(
     Timestamp, site, turbidity, level,
     conductance, temperature
-  ) \%>\%
+  ) |>
   tidyr::pivot_wider(
     names_from = site,
     values_from = turbidity:temperature
   )
 
-fit_mean <- old_ts \%>\%
+fit_mean <- old_ts |>
   conditional_mean(turbidity_downstream ~
-  s(level_upstream, k = 8) +
+    s(level_upstream, k = 8) +
     s(conductance_upstream, k = 8) +
     s(temperature_upstream, k = 8))
 
-fit_var <- old_ts \%>\%
+fit_var <- old_ts |>
   conditional_var(
     turbidity_downstream ~
-    s(level_upstream, k = 7) +
+      s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean
+    fit_mean = fit_mean
   )
-
-
-fit_c_acf <- old_ts \%>\%
-  tidyr::drop_na() \%>\%
+fit_c_acf <- old_ts |>
+  tidyr::drop_na() |>
   conditional_acf(
     turbidity_upstream ~ splines::ns(level_upstream, df = 5) +
       splines::ns(conductance_upstream, df = 5),
-    lag_max = 10, fit_mean, fit_var,
+    lag_max = 10, fit_mean = fit_mean, fit_var = fit_var,
     df_correlation = c(5, 5)
   )
 
-data_inf <- fit_c_acf \%>\% augment()
+data_inf <- fit_c_acf |> augment()
 }

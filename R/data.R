@@ -1,7 +1,6 @@
 #' @importFrom tibble tibble
 NULL
 
-
 #' Anomaly removed data for water quality variables aggregated at 5-minute intervals
 #' from Pringle Creek, Texas.
 #'

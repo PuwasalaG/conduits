@@ -10,7 +10,7 @@
 \item{x}{Model object of class "conditional_ccf" returned from
 \code{\link[conduits]{conditional_ccf}} with information to append to observations.}
 
-\item{...}{Addition arguments to augment method.}
+\item{...}{Additional arguments, not currently used.}
 }
 \value{
 A \code{\link[tibble]{tibble}} with information
@@ -22,50 +22,50 @@ $x_t$ and $y_t$ at lag $k$, i.e. $r_k = E(x_ty_{t+k}|z_t)$.
 }
 \examples{
 
-old_ts <- NEON_PRIN_5min_cleaned \%>\%
+old_ts <- NEON_PRIN_5min_cleaned |>
   dplyr::select(
     Timestamp, site, turbidity, level,
     conductance, temperature
-  ) \%>\%
+  ) |>
   tidyr::pivot_wider(
     names_from = site,
     values_from = turbidity:temperature
   )
 
-fit_mean_y <- old_ts \%>\%
+fit_mean_y <- old_ts |>
   conditional_mean(turbidity_downstream ~
-  s(level_upstream, k = 8) +
+    s(level_upstream, k = 8) +
     s(conductance_upstream, k = 8) +
     s(temperature_upstream, k = 8))
 
-fit_var_y <- old_ts \%>\%
+fit_var_y <- old_ts |>
   conditional_var(
     turbidity_downstream ~
-    s(level_upstream, k = 7) +
+      s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean_y
+    fit_mean = fit_mean_y
   )
 
-fit_mean_x <- old_ts \%>\%
+fit_mean_x <- old_ts |>
   conditional_mean(turbidity_upstream ~
-  s(level_upstream, k = 8) +
+    s(level_upstream, k = 8) +
     s(conductance_upstream, k = 8) +
     s(temperature_upstream, k = 8))
 
-fit_var_x <- old_ts \%>\%
+fit_var_x <- old_ts |>
   conditional_var(
     turbidity_upstream ~
-    s(level_upstream, k = 7) +
+      s(level_upstream, k = 7) +
       s(conductance_upstream, k = 7) +
       s(temperature_upstream, k = 7),
     family = "Gamma",
-    fit_mean_x
+    fit_mean = fit_mean_x
   )
 
-fit_c_ccf <- old_ts \%>\%
-  tidyr::drop_na() \%>\%
+fit_c_ccf <- old_ts |>
+  tidyr::drop_na() |>
   conditional_ccf(
     I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
       level_upstream,
@@ -73,9 +73,10 @@ fit_c_ccf <- old_ts \%>\%
     ) +
       splines::ns(conductance_upstream, df = 5),
     lag_max = 10,
-    fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+    fit_mean_x = fit_mean_x, fit_var_x = fit_var_x,
+    fit_mean_y = fit_mean_y, fit_var_y = fit_var_y,
     df_correlation = c(5, 5)
   )
 
-data_inf <- fit_c_ccf \%>\% augment()
+data_inf <- fit_c_ccf |> augment()
 }

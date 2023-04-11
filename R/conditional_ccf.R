@@ -39,50 +39,50 @@
 #'
 #' @examples
 #'
-#' old_ts <- NEON_PRIN_5min_cleaned %>%
+#' old_ts <- NEON_PRIN_5min_cleaned |>
 #'   dplyr::select(
 #'     Timestamp, site, turbidity, level,
 #'     conductance, temperature
-#'   ) %>%
+#'   ) |>
 #'   tidyr::pivot_wider(
 #'     names_from = site,
 #'     values_from = turbidity:temperature
 #'   )
 #'
-#' fit_mean_y <- old_ts %>%
+#' fit_mean_y <- old_ts |>
 #'   conditional_mean(turbidity_downstream ~
-#'   s(level_upstream, k = 8) +
+#'     s(level_upstream, k = 8) +
 #'     s(conductance_upstream, k = 8) +
 #'     s(temperature_upstream, k = 8))
 #'
-#' fit_var_y <- old_ts %>%
+#' fit_var_y <- old_ts |>
 #'   conditional_var(
 #'     turbidity_downstream ~
-#'     s(level_upstream, k = 7) +
+#'       s(level_upstream, k = 7) +
 #'       s(conductance_upstream, k = 7) +
 #'       s(temperature_upstream, k = 7),
 #'     family = "Gamma",
-#'     fit_mean_y
+#'     fit_mean = fit_mean_y
 #'   )
 #'
-#' fit_mean_x <- old_ts %>%
+#' fit_mean_x <- old_ts |>
 #'   conditional_mean(turbidity_upstream ~
-#'   s(level_upstream, k = 8) +
+#'     s(level_upstream, k = 8) +
 #'     s(conductance_upstream, k = 8) +
 #'     s(temperature_upstream, k = 8))
 #'
-#' fit_var_x <- old_ts %>%
+#' fit_var_x <- old_ts |>
 #'   conditional_var(
 #'     turbidity_upstream ~
-#'     s(level_upstream, k = 7) +
+#'       s(level_upstream, k = 7) +
 #'       s(conductance_upstream, k = 7) +
 #'       s(temperature_upstream, k = 7),
 #'     family = "Gamma",
-#'     fit_mean_x
+#'     fit_mean = fit_mean_x
 #'   )
 #'
-#' fit_c_ccf <- old_ts %>%
-#'   tidyr::drop_na() %>%
+#' fit_c_ccf <- old_ts |>
+#'   tidyr::drop_na() |>
 #'   conditional_ccf(
 #'     I(turbidity_upstream * turbidity_downstream) ~ splines::ns(
 #'       level_upstream,
@@ -90,7 +90,8 @@
 #'     ) +
 #'       splines::ns(temperature_upstream, df = 5),
 #'     lag_max = 10,
-#'     fit_mean_x, fit_var_x, fit_mean_y, fit_var_y,
+#'     fit_mean_x = fit_mean_x, fit_var_x = fit_var_x,
+#'     fit_mean_y = fit_mean_y, fit_var_y = fit_var_y,
 #'     df_correlation = c(5, 5)
 #'   )
 conditional_ccf <- function(data, formula, lag_max = 10, fit_mean_x,
@@ -101,17 +102,16 @@ conditional_ccf <- function(data, formula, lag_max = 10, fit_mean_x,
   y_name <- vars[2]
 
   # Calculate x_t*y_{t+k}
-  new_ts <- data %>%
+  tmp <- data |>
     dplyr::mutate(xstar = normalize(
-      ., {{ x_name }}, fit_mean_x, fit_var_x
-    )) %>%
-    purrr::map_dfc(
-      1:lag_max, calc_xyk_star, ., {{ y_name }}, fit_mean_y,
+      data, {{ x_name }}, fit_mean_x, fit_var_x
+    ))
+  tmp2 <- purrr::map_dfc(
+      seq(lag_max), calc_xyk_star, tmp, {{ y_name }}, fit_mean_y,
       fit_var_y
-    ) %>%
-    stats::setNames(paste("xystar_t", 1:lag_max, sep = "")) %>%
-    dplyr::bind_cols(data, .)
-
+    ) |>
+    stats::setNames(paste("xystar_t", seq(lag_max), sep = ""))
+  new_ts <- dplyr::bind_cols(data, tmp2)
 
   xynames <- colnames(new_ts)[grepl("xystar", names(new_ts))]
   corrl <- corrlink()
@@ -130,7 +130,7 @@ conditional_ccf <- function(data, formula, lag_max = 10, fit_mean_x,
     return(ccf_gam_fit_k)
   }
 
-  ccf_gam_fit <- purrr::map(1:lag_max, fit_ccf_gam)
+  ccf_gam_fit <- purrr::map(seq(lag_max), fit_ccf_gam)
 
   ccf_gam_fit$data <- new_ts
   ccf_gam_fit$lag_max <- lag_max
@@ -153,28 +153,22 @@ corrlink <- function() {
   }
   valideta <- function(eta) TRUE
   link <- "corrlink"
-  structure(list(
-    linkfun = linkfun,
-    linkinv = linkinv,
-    mu.eta = mu.eta,
-    valideta = valideta,
-    name = link
-  ),
-  class = "link-glm"
+  structure(
+    list(
+      linkfun = linkfun,
+      linkinv = linkinv,
+      mu.eta = mu.eta,
+      valideta = valideta,
+      name = link
+    ),
+    class = "link-glm"
   )
 }
 
-
 ## Calculate x_t*y_{t+k}
 calc_xyk_star <- function(k, data, y, fit_mean_y, fit_var_y) {
-  old_ts_lead <- data %>%
-    dplyr::mutate_at({{ y }},
-      dplyr::lead,
-      n = k
-    ) %>%
-    normalize(
-      ., {{ y }},
-      fit_mean_y,
-      fit_var_y
-    ) * data$xstar
+  old_ts_lead <- data |>
+    dplyr::mutate_at({{ y }}, dplyr::lead, n = k)
+  data$xstar * normalize(old_ts_lead,
+    y = {{ y }}, fit_mean = fit_mean_y, fit_var = fit_var_y)
 }

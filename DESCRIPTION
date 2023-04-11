@@ -1,5 +1,5 @@
 Package: conduits
-Title: Conditional UI for Time Series normalisation
+Title: CONDitional UI for Time Series normalisation
 Version: 1.0.0.9000
 Authors@R: c( person("Puwasala", "Gamakumara", email = "puwasala.gamakumara@gmail.com", role= c("aut","cre")),
     person("Priyanga Dilini", "Talagala", role= c("aut")),
@@ -10,11 +10,10 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Imports:
     broom,
     dplyr,
-    magrittr,
     mgcv,
     purrr,
     rlang,
@@ -24,14 +23,15 @@ Imports:
     tibble,
     tidyr,
     tsibble, 
-    forecast,
-    plyr
+    forecast
 Depends: 
-    R (>= 4.00)
+    R (>= 4.1.0)
 Suggests:
+    fable,
     knitr,
     mgcViz,
     rmarkdown,
-    tidyverse,
     patchwork
+URL: https://github.com/PuwasalaG/conduits
+BugReports: https://github.com/PuwasalaG/conduits/issues
 VignetteBuilder: knitr
