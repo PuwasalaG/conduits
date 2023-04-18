@@ -1,6 +1,6 @@
 Package: conduits
 Title: CONDitional UI for Time Series normalisation
-Version: 1.0.0.9000
+Version: 1.0.0
 Authors@R: c( person("Puwasala", "Gamakumara", email = "puwasala.gamakumara@gmail.com", role= c("aut","cre")),
     person("Priyanga Dilini", "Talagala", role= c("aut")),
     person("Rob J.", "Hyndman", role= c("aut"))
